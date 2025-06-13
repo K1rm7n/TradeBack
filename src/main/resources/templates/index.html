@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - AI Trading Assistant')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('home')}"></nav>
+
+<div class="container mt-4">
+    <div class="jumbotron p-4 bg-light rounded shadow-sm mb-4">
+        <h1 class="display-4">Welcome to TradeBack!</h1>
+        <p class="lead">Your AI-powered trading companion for smart investment decisions</p>
+        <hr class="my-4">
+        <p th:if="${user == null}">Sign up or log in to access AI-driven trading signals and insights</p>
+        <p th:if="${user != null}">Hello, <span th:text="${user}"></span>! Ready to analyze your next investment?</p>
+
+        <div th:if="${user == null}" class="d-flex gap-2">
+            <a href="/login" class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            <a href="/signup" class="btn btn-outline-primary"><i class="bi bi-person-plus"></i> Sign Up</a>
+        </div>
+    </div>
+
+    <!-- Main content for logged in users -->
+    <div th:if="${user != null}" class="row">
+        <!-- Recent History Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-clock-history"></i> Recent Analyses</h4>
+                </div>
+                <div class="card-body">
+                    <div th:if="${recentHistory == null || recentHistory.empty}" class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No recent analyses found. Create your first one!
+                    </div>
+
+                    <div th:if="${recentHistory != null && !recentHistory.empty}" class="list-group">
+                        <a th:each="item : ${recentHistory}"
+                           th:href="@{'/history/' + ${item.id}}"
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1" th:text="${item.symbol}">AAPL</h5>
+                                <small th:text="${#temporals.format(item.requestTime, 'MM/dd HH:mm')}">04/29 14:30</small>
+                            </div>
+                            <p class="mb-1" th:text="${#strings.abbreviate(item.aiAdvice, 100)}">
+                                BUY: Strong bullish signal with SMA crossing above...
+                            </p>
+                            <small class="text-muted">
+                                <span th:text="${item.firstIndicatorType + '(' + item.firstPeriod + ')'}">SMA(14)</span>,
+                                <span th:text="${item.secondIndicatorType + '(' + item.secondPeriod + ')'}">EMA(20)</span>,
+                                <span th:text="${item.thirdIndicatorType + '(' + item.thirdPeriod + ')'}">RSI(14)</span>
+                            </small>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/history" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-list"></i> View All History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Analysis Form -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-graph-up"></i> Advanced AI Trading Analysis</h4>
+                    <small class="text-light">Choose from 50+ technical indicators with proper Alpha Vantage intervals</small>
+                </div>
+                <div class="card-body">
+                    <form action="#" th:action="@{/indicators}" th:object="${indicator}" method="post">
+                        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
+                            <div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Symbol Selection -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-search"></i> Symbol
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select th:field="*{symbol}" class="form-select"
+                                        th:classappend="${#fields.hasErrors('symbol')} ? 'is-invalid'" required>
+                                    <option value="" disabled>Select a Symbol</option>
+                                    <option th:each="symbol : ${symbols}" th:value="${symbol.symbol}"
+                                            th:text="${symbol.symbol + ' - ' + symbol.name}">AAPL - Apple Inc.</option>
+                                </select>
+                                <div th:if="${#fields.hasErrors('symbol')}" class="invalid-feedback">
+                                    <div th:each="error : ${#fields.errors('symbol')}" th:text="${error}"></div>
+                                </div>
+                            </div>
+
+                            <!-- Time Interval - UPDATED with correct Alpha Vantage intervals -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-clock"></i> Time Interval
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" th:field="*{interval}" id="intervalSelect"
+                                        th:classappend="${#fields.hasErrors('interval')} ? 'is-invalid'" required>
+                                    <option value="" disabled>Select time interval</option>
+
+                                    <optgroup label="⚡ Intraday (TIME_SERIES_INTRADAY)">
+                                        <option th:value="1min">1 Minute - Ultra High Frequency</option>
+                                        <option th:value="5min">5 Minutes - High Frequency</option>
+                                        <option th:value="15min">15 Minutes - Medium-High Frequency</option>
+                                        <option th:value="30min">30 Minutes - Medium Frequency</option>
+                                        <option th:value="60min">1 Hour - Medium-Low Frequency</option>
+                                    </optgroup>
+
+                                    <optgroup label="📅 Standard Timeframes (Core APIs)">
+                                        <option th:value="daily" selected>Daily - TIME_SERIES_DAILY</option>
+                                        <option th:value="weekly">Weekly - TIME_SERIES_WEEKLY</option>
+                                        <option th:value="monthly">Monthly - TIME_SERIES_MONTHLY</option>
+                                    </optgroup>
+
+                                    <optgroup label="📊 Adjusted Data (Split/Dividend Adjusted)">
+                                        <option th:value="daily_adjusted">Daily Adjusted - TIME_SERIES_DAILY_ADJUSTED</option>
+                                        <option th:value="weekly_adjusted">Weekly Adjusted - TIME_SERIES_WEEKLY_ADJUSTED</option>
+                                        <option th:value="monthly_adjusted">Monthly Adjusted - TIME_SERIES_MONTHLY_ADJUSTED</option>
+                                    </optgroup>
+                                </select>
+
+                                <div class="form-text small" id="intervalHelp">
+                                    <i class="bi bi-info-circle"></i> Select the appropriate interval for your analysis type.
+                                </div>
+
+                                <div th:if="${#fields.hasErrors('interval')}" class="invalid-feedback">
+                                    <div th:each="error : ${#fields.errors('interval')}" th:text="${error}"></div>
+                                </div>
+                            </div>
+
+                            <!-- Indicators remain the same as before -->
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    <i class="bi bi-1-circle"></i> First Indicator
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <select class="form-select" th:field="*{firstIndicatorType}" id="firstIndicatorType"
+                                            th:classappend="${#fields.hasErrors('firstIndicatorType')} ? 'is-invalid'" required>
+                                        <option value="" disabled selected>Choose Indicator</option>
+                                        <optgroup label="📈 Moving Averages">
+                                            <option th:value="SMA">SMA - Simple Moving Average</option>
+                                            <option th:value="EMA">EMA - Exponential Moving Average</option>
+                                            <option th:value="WMA">WMA - Weighted Moving Average</option>
+                                        </optgroup>
+                                        <optgroup label="📊 Oscillators">
+                                            <option th:value="RSI">RSI - Relative Strength Index</option>
+                                            <option th:value="STOCH">STOCH - Stochastic Oscillator</option>
+                                            <option th:value="WILLR">WILLR - Williams %R</option>
+                                            <option th:value="CCI">CCI - Commodity Channel Index</option>
+                                        </optgroup>
+                                        <optgroup label="🎯 MACD Family">
+                                            <option th:value="MACD">MACD - Moving Average Convergence Divergence</option>
+                                        </optgroup>
+                                        <optgroup label="📏 Bands & Channels">
+                                            <option th:value="BBANDS">BBANDS - Bollinger Bands</option>
+                                        </optgroup>
+                                        <optgroup label="📦 Volume Indicators">
+                                            <option th:value="OBV">OBV - On Balance Volume</option>
+                                            <option th:value="VWAP">VWAP - Volume Weighted Average Price</option>
+                                        </optgroup>
+                                        <optgroup label="💨 Volatility Indicators">
+                                            <option th:value="ATR">ATR - Average True Range</option>
+                                        </optgroup>
+                                        <optgroup label="📈 Trend Indicators">
+                                            <option th:value="ADX">ADX - Average Directional Movement Index</option>
+                                            <option th:value="SAR">SAR - Parabolic SAR</option>
+                                        </optgroup>
+                                    </select>
+                                    <input type="number" class="form-control" placeholder="Period" id="firstPeriod"
+                                           th:field="*{firstPeriod}"
+                                           th:classappend="${#fields.hasErrors('firstPeriod')} ? 'is-invalid'"
+                                           min="2" max="200" value="14">
+                                </div>
+                                <div class="form-text small" id="firstIndicatorHelp">
+                                    <i class="bi bi-info-circle"></i> Period is used for most indicators.
+                                </div>
+                                <div th:if="${#fields.hasErrors('firstIndicatorType')}" class="invalid-feedback d-block">
+                                    <div th:each="error : ${#fields.errors('firstIndicatorType')}" th:text="${error}"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    <i class="bi bi-2-circle"></i> Second Indicator
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <select class="form-select" th:field="*{secondIndicatorType}" id="secondIndicatorType"
+                                            th:classappend="${#fields.hasErrors('secondIndicatorType')} ? 'is-invalid'" required>
+                                        <option value="" disabled selected>Choose Indicator</option>
+                                        <optgroup label="📈 Moving Averages">
+                                            <option th:value="SMA">SMA - Simple Moving Average</option>
+                                            <option th:value="EMA">EMA - Exponential Moving Average</option>
+                                            <option th:value="WMA">WMA - Weighted Moving Average</option>
+                                        </optgroup>
+                                        <optgroup label="📊 Oscillators">
+                                            <option th:value="RSI">RSI - Relative Strength Index</option>
+                                            <option th:value="STOCH">STOCH - Stochastic Oscillator</option>
+                                            <option th:value="WILLR">WILLR - Williams %R</option>
+                                            <option th:value="CCI">CCI - Commodity Channel Index</option>
+                                        </optgroup>
+                                        <optgroup label="🎯 MACD Family">
+                                            <option th:value="MACD">MACD - Moving Average Convergence Divergence</option>
+                                        </optgroup>
+                                        <optgroup label="📏 Bands & Channels">
+                                            <option th:value="BBANDS">BBANDS - Bollinger Bands</option>
+                                        </optgroup>
+                                        <optgroup label="📦 Volume Indicators">
+                                            <option th:value="OBV">OBV - On Balance Volume</option>
+                                            <option th:value="VWAP">VWAP - Volume Weighted Average Price</option>
+                                        </optgroup>
+                                        <optgroup label="💨 Volatility Indicators">
+                                            <option th:value="ATR">ATR - Average True Range</option>
+                                        </optgroup>
+                                        <optgroup label="📈 Trend Indicators">
+                                            <option th:value="ADX">ADX - Average Directional Movement Index</option>
+                                            <option th:value="SAR">SAR - Parabolic SAR</option>
+                                        </optgroup>
+                                    </select>
+                                    <input type="number" class="form-control" placeholder="Period" id="secondPeriod"
+                                           th:field="*{secondPeriod}"
+                                           th:classappend="${#fields.hasErrors('secondPeriod')} ? 'is-invalid'"
+                                           min="2" max="200" value="20">
+                                </div>
+                                <div class="form-text small" id="secondIndicatorHelp">
+                                    <i class="bi bi-info-circle"></i> Different indicator for comparison
+                                </div>
+                                <div th:if="${#fields.hasErrors('secondIndicatorType')}" class="invalid-feedback d-block">
+                                    <div th:each="error : ${#fields.errors('secondIndicatorType')}" th:text="${error}"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    <i class="bi bi-3-circle"></i> Third Indicator
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <select class="form-select" th:field="*{thirdIndicatorType}" id="thirdIndicatorType"
+                                            th:classappend="${#fields.hasErrors('thirdIndicatorType')} ? 'is-invalid'" required>
+                                        <option value="" disabled selected>Choose Indicator</option>
+                                        <optgroup label="📈 Moving Averages">
+                                            <option th:value="SMA">SMA - Simple Moving Average</option>
+                                            <option th:value="EMA">EMA - Exponential Moving Average</option>
+                                            <option th:value="WMA">WMA - Weighted Moving Average</option>
+                                        </optgroup>
+                                        <optgroup label="📊 Oscillators">
+                                            <option th:value="RSI">RSI - Relative Strength Index</option>
+                                            <option th:value="STOCH">STOCH - Stochastic Oscillator</option>
+                                            <option th:value="WILLR">WILLR - Williams %R</option>
+                                            <option th:value="CCI">CCI - Commodity Channel Index</option>
+                                        </optgroup>
+                                        <optgroup label="🎯 MACD Family">
+                                            <option th:value="MACD">MACD - Moving Average Convergence Divergence</option>
+                                        </optgroup>
+                                        <optgroup label="📏 Bands & Channels">
+                                            <option th:value="BBANDS">BBANDS - Bollinger Bands</option>
+                                        </optgroup>
+                                        <optgroup label="📦 Volume Indicators">
+                                            <option th:value="OBV">OBV - On Balance Volume</option>
+                                            <option th:value="VWAP">VWAP - Volume Weighted Average Price</option>
+                                        </optgroup>
+                                        <optgroup label="💨 Volatility Indicators">
+                                            <option th:value="ATR">ATR - Average True Range</option>
+                                        </optgroup>
+                                        <optgroup label="📈 Trend Indicators">
+                                            <option th:value="ADX">ADX - Average Directional Movement Index</option>
+                                            <option th:value="SAR">SAR - Parabolic SAR</option>
+                                        </optgroup>
+                                    </select>
+                                    <input type="number" class="form-control" placeholder="Period" id="thirdPeriod"
+                                           th:field="*{thirdPeriod}"
+                                           th:classappend="${#fields.hasErrors('thirdPeriod')} ? 'is-invalid'"
+                                           min="2" max="200" value="14">
+                                </div>
+                                <div class="form-text small" id="thirdIndicatorHelp">
+                                    <i class="bi bi-info-circle"></i> Third indicator for comprehensive analysis
+                                </div>
+                                <div th:if="${#fields.hasErrors('thirdIndicatorType')}" class="invalid-feedback d-block">
+                                    <div th:each="error : ${#fields.errors('thirdIndicatorType')}" th:text="${error}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Popular Combinations -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-lightbulb"></i> Popular Combinations</h6>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
+                                                        onclick="setIndicatorCombo('SMA', 20, 'EMA', 50, 'RSI', 14)">
+                                                    <i class="bi bi-star"></i> Trend Following
+                                                    <small class="d-block">SMA(20) + EMA(50) + RSI(14)</small>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
+                                                        onclick="setIndicatorCombo('MACD', 0, 'BBANDS', 20, 'STOCH', 0)">
+                                                    <i class="bi bi-star"></i> Momentum
+                                                    <small class="d-block">MACD + Bollinger + Stochastic</small>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
+                                                        onclick="setIndicatorCombo('VWAP', 0, 'ATR', 14, 'ADX', 14)">
+                                                    <i class="bi bi-star"></i> Volume & Volatility
+                                                    <small class="d-block">VWAP + ATR(14) + ADX(14)</small>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="mt-4 text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="bi bi-lightning-fill"></i> Generate AI Trading Analysis
+                            </button>
+                            <div class="form-text mt-2">
+                                <i class="bi bi-info-circle"></i> Analysis will use advanced AI with proper Alpha Vantage data
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Symbols Section -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-stars"></i> Popular Trading Symbols</h4>
+                    <small class="text-muted">Top S&P 500 companies by market capitalization</small>
+                </div>
+                <div class="card-body">
+                    <div th:if="${popularSymbols != null && !popularSymbols.empty}" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+                        <div class="col" th:each="symbol : ${popularSymbols}">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title text-primary" th:text="${symbol.symbol}">AAPL</h5>
+                                    <p class="card-text small text-muted" th:text="${#strings.abbreviate(symbol.name, 30)}">Apple Inc.</p>
+                                </div>
+                                <div class="card-footer bg-white border-0 text-center" th:if="${user != null}">
+                                    <a th:href="@{'/signals/symbol/' + ${symbol.symbol}}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-search"></i> View Signals
+                                    </a>
+                                </div>
+                                <div class="card-footer bg-white border-0 text-center" th:if="${user == null}">
+                                    <small class="text-muted">Login to view signals</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div th:if="${popularSymbols == null || popularSymbols.empty}" class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Popular symbols are loading... Please refresh the page in a moment.
+                        <div class="mt-2">
+                            <a href="/" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Page
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<div th:replace="~{fragments/header :: scripts}"></div>
+
+<!-- Updated JavaScript for Alpha Vantage intervals -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('TradeBack: Initializing with correct Alpha Vantage intervals...');
+
+    // Информация о временных интервалах Alpha Vantage
+    const intervalInfo = {
+        '': 'Select a time interval to see API function and recommendations.',
+
+        // Intraday intervals
+        '1min': 'TIME_SERIES_INTRADAY: Ultra-high frequency data. Best for scalping and day trading. VWAP compatible.',
+        '5min': 'TIME_SERIES_INTRADAY: High frequency data. Popular for day trading. Good signal-to-noise ratio. VWAP compatible.',
+        '15min': 'TIME_SERIES_INTRADAY: Medium-high frequency. Excellent for swing trading setups. VWAP compatible.',
+        '30min': 'TIME_SERIES_INTRADAY: Medium frequency. Good balance for intraday analysis. VWAP compatible.',
+        '60min': 'TIME_SERIES_INTRADAY: Hourly data. Perfect for position entries, less noise. VWAP compatible.',
+
+        // Standard timeframes
+        'daily': 'TIME_SERIES_DAILY: Raw daily data. Most popular for swing and position trading. 20+ years of history.',
+        'weekly': 'TIME_SERIES_WEEKLY: Weekly aggregated data. Great for medium-term analysis. Smooths daily volatility.',
+        'monthly': 'TIME_SERIES_MONTHLY: Monthly aggregated data. Ideal for long-term trends and investment decisions.',
+
+        // Adjusted data
+        'daily_adjusted': 'TIME_SERIES_DAILY_ADJUSTED: Daily data adjusted for splits and dividends. Recommended for backtesting.',
+        'weekly_adjusted': 'TIME_SERIES_WEEKLY_ADJUSTED: Weekly data with corporate action adjustments. Best for historical analysis.',
+        'monthly_adjusted': 'TIME_SERIES_MONTHLY_ADJUSTED: Monthly data with adjustments. Perfect for long-term investment research.'
+    };
+
+    // Интервалы, совместимые с VWAP
+    const vwapCompatibleIntervals = ['1min', '5min', '15min', '30min', '60min'];
+
+    // Индикаторы без периода
+    const noPeriodIndicators = ['MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'];
+
+    // Функция обновления подсказок для интервалов
+    function updateIntervalHelp() {
+        const intervalSelect = document.getElementById('intervalSelect');
+        const helpElement = document.getElementById('intervalHelp');
+
+        if (!intervalSelect || !helpElement) return;
+
+        const selectedInterval = intervalSelect.value;
+        const info = intervalInfo[selectedInterval] || intervalInfo[''];
+
+        let helpHtml = `<i class="bi bi-info-circle"></i> ${info}`;
+
+        // Предупреждения о совместимости с VWAP
+        if (vwapCompatibleIntervals.includes(selectedInterval)) {
+            helpHtml += `<br><small class="text-success"><i class="bi bi-check-circle"></i> VWAP compatible</small>`;
+        } else if (selectedInterval && !vwapCompatibleIntervals.includes(selectedInterval)) {
+            helpHtml += `<br><small class="text-warning"><i class="bi bi-exclamation-triangle"></i> VWAP not available (intraday only)</small>`;
+        }
+
+        // Информация о данных
+        if (selectedInterval && selectedInterval.includes('adjusted')) {
+            helpHtml += `<br><small class="text-primary"><i class="bi bi-gear"></i> Includes split/dividend adjustments</small>`;
+        }
+
+        helpElement.innerHTML = helpHtml;
+    }
+
+    // Обработчик изменения интервала
+    const intervalSelect = document.getElementById('intervalSelect');
+    if (intervalSelect) {
+        intervalSelect.addEventListener('change', updateIntervalHelp);
+        updateIntervalHelp(); // Инициализация
+    }
+
+    // Управление периодами индикаторов
+    function togglePeriodField(selectElement, periodElement) {
+        if (!selectElement || !periodElement) return;
+
+        const selectedValue = selectElement.value;
+
+        if (noPeriodIndicators.includes(selectedValue)) {
+            periodElement.style.display = 'none';
+            periodElement.removeAttribute('required');
+            periodElement.value = '0';
+        } else {
+            periodElement.style.display = 'block';
+            periodElement.setAttribute('required', 'required');
+            if (periodElement.value === '0' || periodElement.value === '') {
+                periodElement.value = '14';
+            }
+        }
+    }
+
+    // Инициализация индикаторов
+    const indicators = [
+        { select: document.getElementById('firstIndicatorType'), period: document.getElementById('firstPeriod') },
+        { select: document.getElementById('secondIndicatorType'), period: document.getElementById('secondPeriod') },
+        { select: document.getElementById('thirdIndicatorType'), period: document.getElementById('thirdPeriod') }
+    ];
+
+    indicators.forEach(indicator => {
+        if (indicator.select && indicator.period) {
+            togglePeriodField(indicator.select, indicator.period);
+            indicator.select.addEventListener('change', function() {
+                togglePeriodField(this, indicator.period);
+            });
+        }
+    });
+
+    // Функция для установки комбинаций
+    window.setIndicatorCombo = function(first, firstPeriod, second, secondPeriod, third, thirdPeriod) {
+        const elements = [
+            { select: document.getElementById('firstIndicatorType'), period: document.getElementById('firstPeriod'), type: first, per: firstPeriod },
+            { select: document.getElementById('secondIndicatorType'), period: document.getElementById('secondPeriod'), type: second, per: secondPeriod },
+            { select: document.getElementById('thirdIndicatorType'), period: document.getElementById('thirdPeriod'), type: third, per: thirdPeriod }
+        ];
+
+        elements.forEach(el => {
+            if (el.select) {
+                el.select.value = el.type;
+                el.select.dispatchEvent(new Event('change'));
+                if (el.period && el.per > 0) {
+                    el.period.value = el.per;
+                }
+            }
+        });
+    };
+
+    // Валидация формы
+    const form = document.querySelector('form[th\\:action*="indicators"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const interval = intervalSelect ? intervalSelect.value : '';
+
+            const selectedIndicators = indicators
+                .filter(ind => ind.select && ind.select.value)
+                .map(ind => ind.select.value);
+
+            // Проверяем VWAP с интервалами
+            const vwapSelected = selectedIndicators.includes('VWAP');
+            if (vwapSelected && !vwapCompatibleIntervals.includes(interval)) {
+                e.preventDefault();
+                alert('VWAP indicator only works with intraday intervals (1min, 5min, 15min, 30min, 60min). Please select an intraday interval or choose a different indicator.');
+                return false;
+            }
+
+            console.log('TradeBack: Form validation passed with Alpha Vantage intervals');
+        });
+    }
+
+    console.log('TradeBack: Alpha Vantage interval system initialized');
+});
+</script>
+
+</body>
+</html>

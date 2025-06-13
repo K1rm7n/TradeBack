@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - Request History')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('history')}"></nav>
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-clock-history"></i> Your Request History</h1>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div th:if="${history.empty}" class="alert alert-info">
+        <i class="bi bi-info-circle"></i> You haven't made any indicator requests yet.
+      </div>
+
+      <div th:if="${!history.empty}" class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+          <tr>
+            <th>Date/Time</th>
+            <th>Symbol</th>
+            <th>Indicators</th>
+            <th>Trading Advice</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="item : ${history}">
+            <td th:text="${#temporals.format(item.requestTime, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</td>
+            <td th:text="${item.symbol}">AAPL</td>
+            <td>
+              <span th:text="${item.firstIndicatorType + '(' + item.firstPeriod + ')'}">SMA(14)</span>,
+              <span th:text="${item.secondIndicatorType + '(' + item.secondPeriod + ')'}">EMA(20)</span>,
+              <span th:text="${item.thirdIndicatorType + '(' + item.thirdPeriod + ')'}">RSI(14)</span>
+            </td>
+            <td>
+              <span th:text="${#strings.abbreviate(item.aiAdvice, 50)}">BUY: Strong bullish signal with SMA crossing above...</span>
+            </td>
+            <td>
+              <div class="btn-group">
+                <a th:href="@{'/history/' + ${item.id}}" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i> View
+                </a>
+                <form th:action="@{'/history/delete/' + ${item.id}}" method="post" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Are you sure you want to delete this history item?')">
+                    <i class="bi bi-trash"></i> Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<div th:replace="~{fragments/header :: scripts}"></div>
+</body>
+</html>

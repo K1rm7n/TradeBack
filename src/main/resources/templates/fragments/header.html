@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title}">TradeBack</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+<nav th:fragment="navbar(activeTab)" class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">
+      <i class="bi bi-graph-up-arrow"></i> TradeBack
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" th:classappend="${activeTab == 'home' ? 'active' : ''}" href="/">
+            <i class="bi bi-house-door"></i> Home
+          </a>
+        </li>
+        <li class="nav-item" th:if="${user != null}">
+          <a class="nav-link" th:classappend="${activeTab == 'history' ? 'active' : ''}" href="/history">
+            <i class="bi bi-clock-history"></i> History
+          </a>
+        </li>
+        <li class="nav-item" th:if="${user != null}">
+          <a class="nav-link" th:classappend="${activeTab == 'signals' ? 'active' : ''}" href="/signals">
+            <i class="bi bi-graph-up-arrow"></i> Signals
+          </a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item" th:if="${user == null}">
+          <a class="nav-link" th:classappend="${activeTab == 'login' ? 'active' : ''}" href="/login">
+            <i class="bi bi-box-arrow-in-right"></i> Login
+          </a>
+        </li>
+        <li class="nav-item" th:if="${user == null}">
+          <a class="nav-link" th:classappend="${activeTab == 'signup' ? 'active' : ''}" href="/signup">
+            <i class="bi bi-person-plus"></i> Sign Up
+          </a>
+        </li>
+        <li class="nav-item" th:if="${user != null}">
+          <span class="nav-link text-light">
+            <i class="bi bi-person-circle"></i> <span th:text="${user}"></span>
+          </span>
+        </li>
+        <li class="nav-item" th:if="${user != null}">
+          <a class="nav-link text-danger" href="/logout">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<footer th:fragment="footer" class="bg-dark text-center text-white py-3 mt-5">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4 mb-3 mb-md-0">
+        <h5>About TradeBack</h5>
+        <p class="small">An AI-powered trading assistant that helps you make informed investment decisions</p>
+      </div>
+      <div class="col-md-4 mb-3 mb-md-0">
+        <h5>Quick Links</h5>
+        <ul class="list-unstyled">
+          <li><a href="/" class="text-white">Home</a></li>
+          <li><a href="/history" class="text-white">History</a></li>
+          <li><a href="/signals" class="text-white">Signals</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h5>Contact</h5>
+        <p class="small">support@tradeback.com</p>
+      </div>
+    </div>
+    <hr class="my-2">
+    <p class="mb-0">&copy; 2025 TradeBack</p>
+  </div>
+</footer>
+
+<!-- ДОБАВЛЕН ОТСУТСТВУЮЩИЙ ФРАГМЕНТ SCRIPTS -->
+<div th:fragment="scripts">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+
+</body>
+</html>

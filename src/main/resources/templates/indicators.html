@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - Analysis Results')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('home')}"></nav>
+
+<div class="container mt-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Analysis Results</li>
+    </ol>
+  </nav>
+
+  <!-- Signal Card -->
+  <div class="card shadow-sm mb-4" th:if="${signal != null}">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">
+        <i class="bi bi-graph-up-arrow"></i>
+        Trading Signal for <span th:text="${currentSymbol != null ? currentSymbol : 'Symbol'}">AAPL</span>
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="alert" th:if="${signal != null}"
+               th:classappend="${signal.typeAsString == 'BUY' || signal.typeAsString == 'STRONG_BUY' ? 'alert-success' :
+                     (signal.typeAsString == 'SELL' || signal.typeAsString == 'STRONG_SELL' ? 'alert-danger' : 'alert-warning')}">
+            <h4 th:if="${signal != null}" th:text="${signal.typeAsString + ' SIGNAL'}">BUY SIGNAL</h4>
+            <p th:if="${signal != null}" th:text="${signal.description}">
+              Trading advice will appear here.
+            </p>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h5 class="mb-0"><i class="bi bi-info-circle"></i> Analysis Information</h5>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered">
+                <tr th:if="${currentSymbol != null}">
+                  <th>Symbol</th>
+                  <td th:text="${currentSymbol}">AAPL</td>
+                </tr>
+                <tr th:if="${indicator != null && indicator.interval != null}">
+                  <th>Interval</th>
+                  <td th:text="${indicator.interval}">daily</td>
+                </tr>
+                <tr th:if="${indicator != null && indicator.firstIndicatorType != null}">
+                  <th>First Indicator</th>
+                  <td th:text="${indicator.firstIndicatorType + '(' + indicator.firstPeriod + ')'}">SMA(14)</td>
+                </tr>
+                <tr th:if="${indicator != null && indicator.secondIndicatorType != null}">
+                  <th>Second Indicator</th>
+                  <td th:text="${indicator.secondIndicatorType + '(' + indicator.secondPeriod + ')'}">EMA(20)</td>
+                </tr>
+                <tr th:if="${indicator != null && indicator.thirdIndicatorType != null}">
+                  <th>Third Indicator</th>
+                  <td th:text="${indicator.thirdIndicatorType + '(' + indicator.thirdPeriod + ')'}">RSI(14)</td>
+                </tr>
+                <tr th:if="${signal != null && signal.priceAsDouble > 0}">
+                  <th>Current Price</th>
+                  <td th:text="${'$' + #numbers.formatDecimal(signal.priceAsDouble, 1, 2)}">$150.25</td>
+                </tr>
+                <tr th:if="${firstIndicatorValue != null}">
+                  <th th:if="${indicator != null}" th:text="${indicator.firstIndicatorType + ' Value'}">Indicator 1 Value</th>
+                  <td th:text="${#numbers.formatDecimal(firstIndicatorValue, 1, 2)}">145.78</td>
+                </tr>
+                <tr th:if="${secondIndicatorValue != null}">
+                  <th th:if="${indicator != null}" th:text="${indicator.secondIndicatorType + ' Value'}">Indicator 2 Value</th>
+                  <td th:text="${#numbers.formatDecimal(secondIndicatorValue, 1, 2)}">142.35</td>
+                </tr>
+                <tr th:if="${thirdIndicatorValue != null}">
+                  <th th:if="${indicator != null}" th:text="${indicator.thirdIndicatorType + ' Value'}">Indicator 3 Value</th>
+                  <td th:text="${#numbers.formatDecimal(thirdIndicatorValue, 1, 2)}">60.42</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer bg-light">
+      <div class="d-flex justify-content-between">
+        <a href="/" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> New Analysis
+        </a>
+        <a th:if="${currentSymbol != null}" th:href="@{'/signals/symbol/' + ${currentSymbol}}" class="btn btn-primary">
+          <i class="bi bi-list"></i> View All Signals
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Data Summary -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">
+      <h4 class="mb-0">
+        <i class="bi bi-graph-up"></i> Market Data Summary
+      </h4>
+    </div>
+    <div class="card-body">
+      <div th:if="${marketData != null && !marketData.empty}" class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+          <tr>
+            <th>Date</th>
+            <th>Open</th>
+            <th>High</th>
+            <th>Low</th>
+            <th>Close</th>
+            <th>Volume</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="data : ${marketData}">
+            <td th:text="${#temporals.format(data.date, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</td>
+            <td th:text="${'$' + #numbers.formatDecimal(data.openPriceAsDouble, 1, 2)}">$150.25</td>
+            <td th:text="${'$' + #numbers.formatDecimal(data.highPriceAsDouble, 1, 2)}">$152.10</td>
+            <td th:text="${'$' + #numbers.formatDecimal(data.lowPriceAsDouble, 1, 2)}">$149.80</td>
+            <td th:text="${'$' + #numbers.formatDecimal(data.closePriceAsDouble, 1, 2)}">$151.45</td>
+            <td th:text="${#numbers.formatInteger(data.volume, 1, 'COMMA')}">1,234,567</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div th:if="${marketData == null || marketData.empty}" class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No market data available.
+      </div>
+    </div>
+  </div>
+
+  <!-- Run new analysis form -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0"><i class="bi bi-sliders"></i> New Analysis</h4>
+    </div>
+    <div class="card-body">
+      <form action="#" th:action="@{/indicators}" method="post">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Symbol</label>
+            <select name="symbol" class="form-select" required>
+              <option value="" disabled selected>Select a Symbol</option>
+              <option th:each="symbol : ${symbols}" th:value="${symbol.symbol}"
+                      th:text="${symbol.symbol + ' - ' + symbol.name}">AAPL - Apple Inc.</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Time Interval</label>
+            <select class="form-select" name="interval" required>
+              <option value="" disabled selected>Select interval</option>
+              <option value="1min">1 Minute</option>
+              <option value="5min">5 Minutes</option>
+              <option value="15min">15 Minutes</option>
+              <option value="30min">30 Minutes</option>
+              <option value="60min">1 Hour</option>
+              <option value="daily">Daily</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">First Indicator</label>
+            <div class="input-group">
+              <select class="form-select" name="firstIndicatorType">
+                <option value="SMA">SMA</option>
+                <option value="EMA">EMA</option>
+                <option value="RSI">RSI</option>
+              </select>
+              <input type="number" class="form-control" name="firstPeriod"
+                     min="2" max="200" value="14">
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Second Indicator</label>
+            <div class="input-group">
+              <select class="form-select" name="secondIndicatorType">
+                <option value="SMA">SMA</option>
+                <option value="EMA" selected>EMA</option>
+                <option value="RSI">RSI</option>
+              </select>
+              <input type="number" class="form-control" name="secondPeriod"
+                     min="2" max="200" value="20">
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Third Indicator</label>
+            <div class="input-group">
+              <select class="form-select" name="thirdIndicatorType">
+                <option value="SMA">SMA</option>
+                <option value="EMA">EMA</option>
+                <option value="RSI" selected>RSI</option>
+              </select>
+              <input type="number" class="form-control" name="thirdPeriod"
+                     min="2" max="200" value="14">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 text-center">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i> Run Analysis
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<div th:replace="~{fragments/header :: scripts}"></div>
+</body>
+</html>

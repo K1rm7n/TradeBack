@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - History Detail')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('history')}"></nav>
+
+<div class="container mt-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/history">History</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Detail</li>
+    </ol>
+  </nav>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">
+        <i class="bi bi-info-circle"></i>
+        Analysis Details for <span th:text="${historyItem.symbol}">AAPL</span>
+        <small class="float-end" th:text="${#temporals.format(historyItem.requestTime, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</small>
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <h4>Request Parameters</h4>
+          <table class="table table-bordered">
+            <tr>
+              <th>Symbol</th>
+              <td th:text="${historyItem.symbol}">AAPL</td>
+            </tr>
+            <tr>
+              <th>Interval</th>
+              <td th:text="${historyItem.interval}">daily</td>
+            </tr>
+            <tr>
+              <th>1st Indicator</th>
+              <td th:text="${historyItem.firstIndicatorType + '(' + historyItem.firstPeriod + ')'}">SMA(14)</td>
+            </tr>
+            <tr>
+              <th>2nd Indicator</th>
+              <td th:text="${historyItem.secondIndicatorType + '(' + historyItem.secondPeriod + ')'}">EMA(20)</td>
+            </tr>
+            <tr>
+              <th>3rd Indicator</th>
+              <td th:text="${historyItem.thirdIndicatorType + '(' + historyItem.thirdPeriod + ')'}">RSI(14)</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h4>AI Trading Advice</h4>
+          <div class="card bg-light">
+            <div class="card-body">
+              <p class="card-text" th:text="${historyItem.aiAdvice}">
+                BUY: Strong bullish signal with SMA crossing above EMA. The RSI value of 60 indicates moderate momentum but not yet overbought. Consider buying with a tight stop loss.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="d-flex justify-content-between">
+        <a href="/history" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> Back to History
+        </a>
+        <form th:action="@{'/indicators'}" method="post">
+          <input type="hidden" name="symbol" th:value="${indicator.symbol}" />
+          <input type="hidden" name="interval" th:value="${indicator.interval}" />
+          <input type="hidden" name="firstIndicatorType" th:value="${indicator.firstIndicatorType}" />
+          <input type="hidden" name="firstPeriod" th:value="${indicator.firstPeriod}" />
+          <input type="hidden" name="secondIndicatorType" th:value="${indicator.secondIndicatorType}" />
+          <input type="hidden" name="secondPeriod" th:value="${indicator.secondPeriod}" />
+          <input type="hidden" name="thirdIndicatorType" th:value="${indicator.thirdIndicatorType}" />
+          <input type="hidden" name="thirdPeriod" th:value="${indicator.thirdPeriod}" />
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i> Rerun Analysis
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<div th:replace="~{fragments/header :: scripts}"></div>
+</body>
+</html>

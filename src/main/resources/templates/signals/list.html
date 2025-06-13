@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - Trading Signals')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('signals')}"></nav>
+
+<div class="container mt-4">
+  <h1><i class="bi bi-graph-up-arrow"></i> Trading Signals</h1>
+
+  <!-- Сообщение об ошибке -->
+  <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Error message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Find Signals by Symbol</h4>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <form id="symbolForm">
+            <div class="input-group mb-3">
+              <label class="input-group-text" for="symbolSelect">Symbol</label>
+              <select class="form-select" id="symbolSelect" name="symbol" required>
+                <option value="" selected>Select a Symbol</option>
+                <option th:each="symbol : ${symbols}" th:value="${symbol.symbol}"
+                        th:text="${symbol.symbol + ' - ' + symbol.name}">AAPL - Apple Inc.</option>
+              </select>
+              <button class="btn btn-primary" type="submit">Find</button>
+            </div>
+          </form>
+        </div>
+        <div class="col-md-6">
+          <!-- Исправленная форма для поиска по датам -->
+          <form th:action="@{/signals/range}" method="post" id="rangeForm">
+            <div class="row g-2">
+              <div class="col-12 mb-2">
+                <select class="form-select" id="rangeSymbol" name="symbol" required>
+                  <option value="" selected>Select Symbol for Date Range</option>
+                  <option th:each="symbol : ${symbols}" th:value="${symbol.symbol}"
+                          th:text="${symbol.symbol + ' - ' + symbol.name}">AAPL - Apple Inc.</option>
+                </select>
+              </div>
+              <div class="col-md-5">
+                <input type="date" class="form-control" id="startDate" name="startDate" required>
+              </div>
+              <div class="col-md-5">
+                <input type="date" class="form-control" id="endDate" name="endDate" required>
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-primary w-100" type="submit">Search</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h4 class="mb-0">Browse Symbols</h4>
+    </div>
+    <div class="card-body">
+      <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+        <div class="col" th:each="symbol, stat : ${symbols}" th:if="${stat.index < 12}">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title" th:text="${symbol.symbol}">AAPL</h5>
+              <p class="card-text small" th:text="${symbol.name}">Apple Inc.</p>
+            </div>
+            <div class="card-footer bg-white">
+              <a th:href="@{'/signals/symbol/' + ${symbol.symbol}}" class="btn btn-sm btn-outline-primary w-100">
+                <i class="bi bi-search"></i> View Signals
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<script th:replace="~{fragments/header :: scripts}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form submission handler for symbol search
+        document.getElementById('symbolForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const symbol = document.getElementById('symbolSelect').value;
+            if (symbol) {
+                window.location.href = '/signals/symbol/' + symbol;
+            } else {
+                alert('Please select a symbol');
+            }
+        });
+
+        // Validation for date range form
+        document.getElementById('rangeForm').addEventListener('submit', function(e) {
+            const symbol = document.getElementById('rangeSymbol').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!symbol) {
+                e.preventDefault();
+                alert('Please select a symbol for date range search');
+                return;
+            }
+
+            if (!startDate || !endDate) {
+                e.preventDefault();
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                e.preventDefault();
+                alert('Start date cannot be later than end date');
+                return;
+            }
+        });
+    });
+</script>
+</body>
+</html>

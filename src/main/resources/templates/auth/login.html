@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - Login')}"></head>
+<body class="bg-light">
+
+<nav th:replace="~{fragments/header :: navbar('login')}"></nav>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4 shadow-lg" style="width: 28rem;">
+        <div class="text-center mb-4">
+            <i class="bi bi-graph-up-arrow text-primary" style="font-size: 3rem;"></i>
+            <h2 class="mt-2">Welcome Back</h2>
+            <p class="text-muted">Log in to access your AI trading assistant</p>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Error message</span>
+        </div>
+
+        <form th:action="@{/authenticate}" method="post" th:object="${loginRequest}">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" id="username" name="username" class="form-control"
+                           th:classappend="${#fields.hasErrors('username')} ? 'is-invalid'"
+                           placeholder="Enter your username" th:field="*{username}" required>
+                </div>
+                <div th:if="${#fields.hasErrors('username')}" class="invalid-feedback d-block">
+                    <div th:each="error : ${#fields.errors('username')}" th:text="${error}"></div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" id="password" name="password" class="form-control"
+                           th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
+                           placeholder="Enter your password" th:field="*{password}" required>
+                </div>
+                <div th:if="${#fields.hasErrors('password')}" class="invalid-feedback d-block">
+                    <div th:each="error : ${#fields.errors('password')}" th:text="${error}"></div>
+                </div>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="rememberMe">
+                <label class="form-check-label" for="rememberMe">Remember me</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </button>
+        </form>
+        <p class="text-center mt-4">
+            Don't have an account? <a href="/signup" class="text-decoration-none">Sign up</a>
+        </p>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<div th:replace="~{fragments/header :: scripts}"></div>
+</body>
+</html>

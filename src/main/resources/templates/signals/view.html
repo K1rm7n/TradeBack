@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('TradeBack - Signal Details')}"></head>
+<body>
+
+<nav th:replace="~{fragments/header :: navbar('signals')}"></nav>
+
+<div class="container mt-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/signals">Signals</a></li>
+      <li class="breadcrumb-item"><a th:href="@{'/signals/symbol/' + ${signal.symbol}}" th:text="${signal.symbol}">AAPL</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Signal Details</li>
+    </ol>
+  </nav>
+
+  <div class="card-header" th:classappend="${signal.typeAsString == 'BUY' ? 'bg-success' : (signal.typeAsString == 'SELL' ? 'bg-danger' : 'bg-warning')} + ' text-white'">
+    <h3 class="mb-0">
+      <i th:if="${signal.typeAsString == 'BUY'}" class="bi bi-graph-up-arrow"></i>
+      <i th:if="${signal.typeAsString == 'SELL'}" class="bi bi-graph-down-arrow"></i>
+      <i th:if="${signal.typeAsString == 'HOLD'}" class="bi bi-dash-circle"></i>
+      <i th:if="${signal.typeAsString == 'STRONG_BUY'}" class="bi bi-graph-up-arrow"></i>
+      <i th:if="${signal.typeAsString == 'STRONG_SELL'}" class="bi bi-graph-down-arrow"></i>
+      <span th:text="${signal.typeAsString}">BUY</span> Signal for <span th:text="${signal.symbol}">AAPL</span>
+      <small class="float-end" th:text="${#temporals.format(signal.date, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</small>
+    </h3>
+  </div>
+    <div class="card-body">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-header bg-light">
+              <h5 class="mb-0">Signal Information</h5>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered">
+                <tr>
+                  <th>Symbol</th>
+                  <td th:text="${signal.symbol}">AAPL</td>
+                </tr>
+                <tr>
+                  <th>Type</th>
+                  <td>
+                    <span th:if="${signal.typeAsString == 'BUY'}" class="badge bg-success" th:text="${signal.typeAsString}">BUY</span>
+                    <span th:if="${signal.typeAsString == 'SELL'}" class="badge bg-danger" th:text="${signal.typeAsString}">SELL</span>
+                    <span th:if="${signal.typeAsString == 'HOLD'}" class="badge bg-warning text-dark" th:text="${signal.typeAsString}">HOLD</span>
+                    <span th:if="${signal.typeAsString == 'STRONG_BUY'}" class="badge bg-success" th:text="${signal.typeAsString}">STRONG BUY</span>
+                    <span th:if="${signal.typeAsString == 'STRONG_SELL'}" class="badge bg-danger" th:text="${signal.typeAsString}">STRONG SELL</span>
+                    <span th:if="${signal.typeAsString == 'UNKNOWN'}" class="badge bg-secondary" th:text="${signal.typeAsString}">UNKNOWN</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Price</th>
+                  <td th:text="${'$' + #numbers.formatDecimal(signal.priceAsDouble, 1, 2)}">$150.25</td>
+                </tr>
+                <tr>
+                  <th>Generated</th>
+                  <td th:text="${#temporals.format(signal.date, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-header bg-light">
+              <h5 class="mb-0">Analysis Explanation</h5>
+            </div>
+            <div class="card-body">
+              <p class="card-text" th:text="${signal.description}">
+                BUY: Strong bullish signal with SMA crossing above EMA. The RSI value of 60 indicates moderate momentum but not yet overbought. Consider buying with a tight stop loss.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+      <a th:href="@{'/signals/symbol/' + ${signal.symbol}}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Signals
+      </a>
+      <form th:action="@{'/signals/delete/' + ${signal.id}}" method="post" class="d-inline">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Are you sure you want to delete this signal?')">
+          <i class="bi bi-trash"></i> Delete Signal
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{fragments/header :: footer}"></footer>
+<script th:replace="~{fragments/header :: scripts}"></script>
+</body>
+</html>
