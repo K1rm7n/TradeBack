@@ -16,10 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -209,8 +206,7 @@ public class MarketDataService {
             if (isIntradayInterval(interval)) {
                 marketData.setDate(parseDateTime(dateStr));
             } else {
-                //FIXME
-                marketData.setDate(parseDate(dateStr).atStartOfDay());
+                marketData.setDate(parseDate(dateStr));
             }
 
             // Парсим OHLCV данные (ключи стандартные для Alpha Vantage)
@@ -231,21 +227,20 @@ public class MarketDataService {
     /**
      * Получает рекомендации по использованию интервала
      */
-    //FIXME
     public List<String> getIntervalRecommendations(String interval) {
-        Map<String, List<String>> recommendations = Map.of(
-                "1min", Arrays.asList("Scalping", "High-frequency trading", "Market microstructure"),
-                "5min", Arrays.asList("Day trading", "Momentum trading", "Quick reversals"),
-                "15min", Arrays.asList("Swing entries", "Breakout confirmation", "Intraday trends"),
-                "30min", Arrays.asList("Position trading", "Multi-timeframe analysis"),
-                "60min", Arrays.asList("Swing trading", "Position entries", "Trend confirmation"),
-                "daily", Arrays.asList("Swing trading", "Position trading", "Technical analysis"),
-                "weekly", Arrays.asList("Medium-term trading", "Trend analysis", "Sector rotation"),
-                "monthly", Arrays.asList("Long-term investing", "Portfolio planning"),
-                "daily_adjusted", Arrays.asList("Backtesting", "Historical analysis", "Performance measurement"),
-                "weekly_adjusted", Arrays.asList("Historical research", "Long-term backtesting"),
-                "monthly_adjusted", Arrays.asList("Investment research", "Long-term performance")
-        );
+        Map<String, List<String>> recommendations = new HashMap<>();
+
+        recommendations.put("1min", Arrays.asList("Scalping", "High-frequency trading", "Market microstructure"));
+        recommendations.put("5min", Arrays.asList("Day trading", "Momentum trading", "Quick reversals"));
+        recommendations.put("15min", Arrays.asList("Swing entries", "Breakout confirmation", "Intraday trends"));
+        recommendations.put("30min", Arrays.asList("Position trading", "Multi-timeframe analysis"));
+        recommendations.put("60min", Arrays.asList("Swing trading", "Position entries", "Trend confirmation"));
+        recommendations.put("daily", Arrays.asList("Swing trading", "Position trading", "Technical analysis"));
+        recommendations.put("weekly", Arrays.asList("Medium-term trading", "Trend analysis", "Sector rotation"));
+        recommendations.put("monthly", Arrays.asList("Long-term investing", "Portfolio planning"));
+        recommendations.put("daily_adjusted", Arrays.asList("Backtesting", "Historical analysis", "Performance measurement"));
+        recommendations.put("weekly_adjusted", Arrays.asList("Historical research", "Long-term backtesting"));
+        recommendations.put("monthly_adjusted", Arrays.asList("Investment research", "Long-term performance"));
 
         return recommendations.getOrDefault(interval, Arrays.asList("General analysis"));
     }

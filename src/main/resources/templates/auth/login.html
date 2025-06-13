@@ -30,6 +30,8 @@
                     <div th:each="error : ${#fields.errors('username')}" th:text="${error}"></div>
                 </div>
             </div>
+
+            <!-- ОБНОВЛЕННОЕ ПОЛЕ ПАРОЛЯ С КНОПКОЙ ПОКАЗА -->
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
                 <div class="input-group">
@@ -37,11 +39,15 @@
                     <input type="password" id="password" name="password" class="form-control"
                            th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
                            placeholder="Enter your password" th:field="*{password}" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                    </button>
                 </div>
                 <div th:if="${#fields.hasErrors('password')}" class="invalid-feedback d-block">
                     <div th:each="error : ${#fields.errors('password')}" th:text="${error}"></div>
                 </div>
             </div>
+
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="rememberMe">
                 <label class="form-check-label" for="rememberMe">Remember me</label>
@@ -58,5 +64,37 @@
 
 <footer th:replace="~{fragments/header :: footer}"></footer>
 <div th:replace="~{fragments/header :: scripts}"></div>
+
+<!-- JAVASCRIPT ДЛЯ ПЕРЕКЛЮЧЕНИЯ ВИДИМОСТИ ПАРОЛЯ -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('password');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+
+    if (togglePassword && passwordField && toggleIcon) {
+        togglePassword.addEventListener('click', function() {
+            // Переключаем тип поля между password и text
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+
+            // Меняем иконку
+            if (type === 'text') {
+                toggleIcon.classList.remove('bi-eye');
+                toggleIcon.classList.add('bi-eye-slash');
+                togglePassword.setAttribute('title', 'Hide password');
+            } else {
+                toggleIcon.classList.remove('bi-eye-slash');
+                toggleIcon.classList.add('bi-eye');
+                togglePassword.setAttribute('title', 'Show password');
+            }
+        });
+
+        // Устанавливаем начальный title
+        togglePassword.setAttribute('title', 'Show password');
+    }
+});
+</script>
+
 </body>
 </html>

@@ -67,7 +67,7 @@
                     <small class="text-light">Choose from 50+ technical indicators with proper Alpha Vantage intervals</small>
                 </div>
                 <div class="card-body">
-                    <form action="#" th:action="@{/indicators}" th:object="${indicator}" method="post">
+                    <form th:action="@{/indicators}" th:object="${indicator}" method="post">
                         <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
                             <div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
                         </div>
@@ -82,21 +82,21 @@
                                 <select th:field="*{symbol}" class="form-select"
                                         th:classappend="${#fields.hasErrors('symbol')} ? 'is-invalid'" required>
                                     <option value="" disabled>Select a Symbol</option>
-                                    <option th:each="symbol : ${symbols}" th:value="${symbol.symbol}"
-                                            th:text="${symbol.symbol + ' - ' + symbol.name}">AAPL - Apple Inc.</option>
+                                    <option th:each="symbolItem : ${symbols}" th:value="${symbolItem.symbol}"
+                                            th:text="${symbolItem.symbol + ' - ' + symbolItem.name}">AAPL - Apple Inc.</option>
                                 </select>
                                 <div th:if="${#fields.hasErrors('symbol')}" class="invalid-feedback">
                                     <div th:each="error : ${#fields.errors('symbol')}" th:text="${error}"></div>
                                 </div>
                             </div>
 
-                            <!-- Time Interval - UPDATED with correct Alpha Vantage intervals -->
+                            <!-- Time Interval -->
                             <div class="col-md-6">
                                 <label class="form-label">
                                     <i class="bi bi-clock"></i> Time Interval
                                     <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" th:field="*{interval}" id="intervalSelect"
+                                <select th:field="*{interval}" class="form-select" id="intervalSelect"
                                         th:classappend="${#fields.hasErrors('interval')} ? 'is-invalid'" required>
                                     <option value="" disabled>Select time interval</option>
 
@@ -130,14 +130,14 @@
                                 </div>
                             </div>
 
-                            <!-- Indicators remain the same as before -->
+                            <!-- First Indicator -->
                             <div class="col-md-4">
                                 <label class="form-label">
                                     <i class="bi bi-1-circle"></i> First Indicator
                                     <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <select class="form-select" th:field="*{firstIndicatorType}" id="firstIndicatorType"
+                                    <select th:field="*{firstIndicatorType}" class="form-select" id="firstIndicatorType"
                                             th:classappend="${#fields.hasErrors('firstIndicatorType')} ? 'is-invalid'" required>
                                         <option value="" disabled selected>Choose Indicator</option>
                                         <optgroup label="📈 Moving Averages">
@@ -170,10 +170,10 @@
                                         </optgroup>
                                     </select>
                                     <input type="number" class="form-control" placeholder="Period" id="firstPeriod"
-                                           th:field="*{firstPeriod}"
-                                           th:classappend="${#fields.hasErrors('firstPeriod')} ? 'is-invalid'"
                                            min="2" max="200" value="14">
                                 </div>
+                                <input type="hidden" th:field="*{firstPeriod}" id="firstPeriodHidden">
+
                                 <div class="form-text small" id="firstIndicatorHelp">
                                     <i class="bi bi-info-circle"></i> Period is used for most indicators.
                                 </div>
@@ -182,13 +182,14 @@
                                 </div>
                             </div>
 
+                            <!-- Second Indicator -->
                             <div class="col-md-4">
                                 <label class="form-label">
                                     <i class="bi bi-2-circle"></i> Second Indicator
                                     <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <select class="form-select" th:field="*{secondIndicatorType}" id="secondIndicatorType"
+                                    <select th:field="*{secondIndicatorType}" class="form-select" id="secondIndicatorType"
                                             th:classappend="${#fields.hasErrors('secondIndicatorType')} ? 'is-invalid'" required>
                                         <option value="" disabled selected>Choose Indicator</option>
                                         <optgroup label="📈 Moving Averages">
@@ -221,10 +222,10 @@
                                         </optgroup>
                                     </select>
                                     <input type="number" class="form-control" placeholder="Period" id="secondPeriod"
-                                           th:field="*{secondPeriod}"
-                                           th:classappend="${#fields.hasErrors('secondPeriod')} ? 'is-invalid'"
                                            min="2" max="200" value="20">
                                 </div>
+                                <input type="hidden" th:field="*{secondPeriod}" id="secondPeriodHidden">
+
                                 <div class="form-text small" id="secondIndicatorHelp">
                                     <i class="bi bi-info-circle"></i> Different indicator for comparison
                                 </div>
@@ -233,13 +234,14 @@
                                 </div>
                             </div>
 
+                            <!-- Third Indicator -->
                             <div class="col-md-4">
                                 <label class="form-label">
                                     <i class="bi bi-3-circle"></i> Third Indicator
                                     <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <select class="form-select" th:field="*{thirdIndicatorType}" id="thirdIndicatorType"
+                                    <select th:field="*{thirdIndicatorType}" class="form-select" id="thirdIndicatorType"
                                             th:classappend="${#fields.hasErrors('thirdIndicatorType')} ? 'is-invalid'" required>
                                         <option value="" disabled selected>Choose Indicator</option>
                                         <optgroup label="📈 Moving Averages">
@@ -272,10 +274,10 @@
                                         </optgroup>
                                     </select>
                                     <input type="number" class="form-control" placeholder="Period" id="thirdPeriod"
-                                           th:field="*{thirdPeriod}"
-                                           th:classappend="${#fields.hasErrors('thirdPeriod')} ? 'is-invalid'"
                                            min="2" max="200" value="14">
                                 </div>
+                                <input type="hidden" th:field="*{thirdPeriod}" id="thirdPeriodHidden">
+
                                 <div class="form-text small" id="thirdIndicatorHelp">
                                     <i class="bi bi-info-circle"></i> Third indicator for comprehensive analysis
                                 </div>
@@ -285,33 +287,21 @@
                             </div>
                         </div>
 
-                        <!-- Popular Combinations -->
+                        <!-- Popular Combinations - ДИНАМИЧЕСКИЕ НА ОСНОВЕ ИНТЕРВАЛА -->
                         <div class="row mt-4">
                             <div class="col-12">
                                 <div class="card bg-light">
                                     <div class="card-body">
-                                        <h6 class="card-title"><i class="bi bi-lightbulb"></i> Popular Combinations</h6>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-2">
-                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
-                                                        onclick="setIndicatorCombo('SMA', 20, 'EMA', 50, 'RSI', 14)">
-                                                    <i class="bi bi-star"></i> Trend Following
-                                                    <small class="d-block">SMA(20) + EMA(50) + RSI(14)</small>
-                                                </button>
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
-                                                        onclick="setIndicatorCombo('MACD', 0, 'BBANDS', 20, 'STOCH', 0)">
-                                                    <i class="bi bi-star"></i> Momentum
-                                                    <small class="d-block">MACD + Bollinger + Stochastic</small>
-                                                </button>
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <button type="button" class="btn btn-outline-primary btn-sm w-100"
-                                                        onclick="setIndicatorCombo('VWAP', 0, 'ATR', 14, 'ADX', 14)">
-                                                    <i class="bi bi-star"></i> Volume & Volatility
-                                                    <small class="d-block">VWAP + ATR(14) + ADX(14)</small>
-                                                </button>
+                                        <h6 class="card-title">
+                                            <i class="bi bi-lightbulb"></i> Recommended Combinations
+                                            <small class="text-muted">- Optimized for selected interval</small>
+                                        </h6>
+                                        <div class="row" id="popularCombinations">
+                                            <!-- Комбинации будут загружены динамически -->
+                                            <div class="col-12">
+                                                <div class="alert alert-info">
+                                                    <i class="bi bi-info-circle"></i> Select an interval above to see recommended indicator combinations
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -379,28 +369,79 @@
 <footer th:replace="~{fragments/header :: footer}"></footer>
 <div th:replace="~{fragments/header :: scripts}"></div>
 
-<!-- Updated JavaScript for Alpha Vantage intervals -->
+<!-- ПОЛНЫЙ ОБНОВЛЕННЫЙ JAVASCRIPT -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('TradeBack: Initializing with correct Alpha Vantage intervals...');
 
+    // Динамические комбинации на основе выбранного интервала
+    const intervalCombinations = {
+        '1min': [
+            { name: 'Scalping Master', indicators: ['EMA', 5, 'EMA', 13, 'STOCH', 0], desc: 'Ultra-fast EMA crossover + Stochastic' },
+            { name: 'Momentum Scalp', indicators: ['RSI', 7, 'CCI', 14, 'WILLR', 14], desc: 'Multiple oscillators for quick entries' },
+            { name: 'Volume Scalp', indicators: ['VWAP', 0, 'RSI', 9, 'ATR', 7], desc: 'VWAP + fast momentum indicators' }
+        ],
+        '5min': [
+            { name: 'Day Trader Pro', indicators: ['EMA', 9, 'EMA', 21, 'MACD', 0], desc: 'Classic 9/21 EMA + MACD setup' },
+            { name: 'Breakout Day', indicators: ['BBANDS', 20, 'RSI', 14, 'ATR', 14], desc: 'Bollinger breakouts + volatility' },
+            { name: 'VWAP Strategy', indicators: ['VWAP', 0, 'EMA', 20, 'STOCH', 0], desc: 'VWAP mean reversion setup' }
+        ],
+        '15min': [
+            { name: 'Swing Entry', indicators: ['SMA', 20, 'RSI', 14, 'MACD', 0], desc: 'Perfect for swing trade entries' },
+            { name: 'Trend Rider', indicators: ['EMA', 12, 'EMA', 26, 'ADX', 14], desc: 'Trend following with strength filter' },
+            { name: 'Momentum Play', indicators: ['CCI', 20, 'STOCH', 0, 'WILLR', 14], desc: 'Multi-oscillator momentum' }
+        ],
+        '30min': [
+            { name: 'Position Setup', indicators: ['SMA', 50, 'RSI', 21, 'BBANDS', 20], desc: 'Medium-term position entries' },
+            { name: 'Trend Confirm', indicators: ['EMA', 20, 'MACD', 0, 'ADX', 14], desc: 'Strong trend confirmation' },
+            { name: 'Volatility Play', indicators: ['ATR', 20, 'CCI', 20, 'SAR', 0], desc: 'Volatility-based entries' }
+        ],
+        '60min': [
+            { name: 'Hourly Trend', indicators: ['SMA', 20, 'SMA', 50, 'RSI', 14], desc: 'Classic dual SMA system' },
+            { name: 'Momentum Hour', indicators: ['MACD', 0, 'STOCH', 0, 'CCI', 14], desc: 'Strong momentum signals' },
+            { name: 'Range Trader', indicators: ['BBANDS', 20, 'WILLR', 14, 'RSI', 21], desc: 'Range-bound market trading' }
+        ],
+        'daily': [
+            { name: 'Swing Trading', indicators: ['SMA', 20, 'RSI', 14, 'MACD', 0], desc: 'Classic swing trading setup' },
+            { name: 'Trend Following', indicators: ['SMA', 50, 'SMA', 200, 'ADX', 14], desc: 'Golden/Death cross system' },
+            { name: 'Mean Reversion', indicators: ['BBANDS', 20, 'RSI', 14, 'WILLR', 14], desc: 'Oversold/overbought plays' }
+        ],
+        'weekly': [
+            { name: 'Position Trading', indicators: ['SMA', 10, 'SMA', 50, 'RSI', 14], desc: 'Weekly position entries' },
+            { name: 'Sector Rotation', indicators: ['MACD', 0, 'ADX', 14, 'RSI', 21], desc: 'Long-term sector moves' },
+            { name: 'Trend Investor', indicators: ['EMA', 12, 'EMA', 26, 'CCI', 20], desc: 'Investment-grade trends' }
+        ],
+        'monthly': [
+            { name: 'Long-term Investor', indicators: ['SMA', 12, 'SMA', 24, 'RSI', 14], desc: 'Monthly investment signals' },
+            { name: 'Macro Trends', indicators: ['MACD', 0, 'ADX', 14, 'CCI', 14], desc: 'Macro-economic trends' },
+            { name: 'Portfolio Timer', indicators: ['EMA', 6, 'EMA', 12, 'RSI', 12], desc: 'Portfolio allocation timing' }
+        ],
+        'daily_adjusted': [
+            { name: 'Backtest Classic', indicators: ['SMA', 20, 'RSI', 14, 'MACD', 0], desc: 'Standard backtesting setup' },
+            { name: 'Historical Analysis', indicators: ['SMA', 50, 'SMA', 200, 'ADX', 14], desc: 'Long-term historical patterns' },
+            { name: 'Performance Study', indicators: ['BBANDS', 20, 'RSI', 14, 'ATR', 20], desc: 'Risk-adjusted performance' }
+        ],
+        'weekly_adjusted': [
+            { name: 'Long-term Backtest', indicators: ['SMA', 10, 'SMA', 50, 'MACD', 0], desc: 'Weekly backtesting' },
+            { name: 'Cycle Analysis', indicators: ['RSI', 14, 'CCI', 20, 'ADX', 14], desc: 'Market cycle identification' }
+        ],
+        'monthly_adjusted': [
+            { name: 'Investment Research', indicators: ['SMA', 6, 'SMA', 12, 'RSI', 12], desc: 'Long-term investment research' },
+            { name: 'Macro Analysis', indicators: ['MACD', 0, 'ADX', 12, 'CCI', 12], desc: 'Macroeconomic analysis' }
+        ]
+    };
+
     // Информация о временных интервалах Alpha Vantage
     const intervalInfo = {
         '': 'Select a time interval to see API function and recommendations.',
-
-        // Intraday intervals
         '1min': 'TIME_SERIES_INTRADAY: Ultra-high frequency data. Best for scalping and day trading. VWAP compatible.',
         '5min': 'TIME_SERIES_INTRADAY: High frequency data. Popular for day trading. Good signal-to-noise ratio. VWAP compatible.',
         '15min': 'TIME_SERIES_INTRADAY: Medium-high frequency. Excellent for swing trading setups. VWAP compatible.',
         '30min': 'TIME_SERIES_INTRADAY: Medium frequency. Good balance for intraday analysis. VWAP compatible.',
         '60min': 'TIME_SERIES_INTRADAY: Hourly data. Perfect for position entries, less noise. VWAP compatible.',
-
-        // Standard timeframes
         'daily': 'TIME_SERIES_DAILY: Raw daily data. Most popular for swing and position trading. 20+ years of history.',
         'weekly': 'TIME_SERIES_WEEKLY: Weekly aggregated data. Great for medium-term analysis. Smooths daily volatility.',
         'monthly': 'TIME_SERIES_MONTHLY: Monthly aggregated data. Ideal for long-term trends and investment decisions.',
-
-        // Adjusted data
         'daily_adjusted': 'TIME_SERIES_DAILY_ADJUSTED: Daily data adjusted for splits and dividends. Recommended for backtesting.',
         'weekly_adjusted': 'TIME_SERIES_WEEKLY_ADJUSTED: Weekly data with corporate action adjustments. Best for historical analysis.',
         'monthly_adjusted': 'TIME_SERIES_MONTHLY_ADJUSTED: Monthly data with adjustments. Perfect for long-term investment research.'
@@ -412,6 +453,60 @@ document.addEventListener('DOMContentLoaded', function() {
     // Индикаторы без периода
     const noPeriodIndicators = ['MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'];
 
+    // Функция для обновления комбинаций на основе интервала
+    function updateIntervalCombinations() {
+        const intervalSelect = document.getElementById('intervalSelect');
+        const combinationsContainer = document.getElementById('popularCombinations');
+
+        if (!intervalSelect || !combinationsContainer) return;
+
+        const selectedInterval = intervalSelect.value;
+        const combinations = intervalCombinations[selectedInterval] || [];
+
+        if (combinations.length === 0) {
+            combinationsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info"><i class="bi bi-info-circle"></i> Select an interval to see recommended indicator combinations</div></div>';
+            return;
+        }
+
+        let buttonClass = 'btn-outline-primary';
+        let intervalType = '';
+
+        if (['1min', '5min'].includes(selectedInterval)) {
+            buttonClass = 'btn-outline-danger';
+            intervalType = '⚡ Scalping/Day Trading';
+        } else if (['15min', '30min', '60min'].includes(selectedInterval)) {
+            buttonClass = 'btn-outline-warning';
+            intervalType = '📈 Intraday/Swing';
+        } else if (['daily', 'weekly', 'monthly'].includes(selectedInterval)) {
+            buttonClass = 'btn-outline-success';
+            intervalType = '📊 Swing/Position';
+        } else {
+            buttonClass = 'btn-outline-info';
+            intervalType = '🔬 Research/Backtesting';
+        }
+
+        let html = '<div class="col-12 mb-2"><small class="text-muted"><strong>' + intervalType + '</strong> - Optimized for ' + selectedInterval + ' interval</small></div>';
+
+        combinations.forEach(function(combo) {
+            const indicators = combo.indicators;
+            const type1 = indicators[0];
+            const period1 = indicators[1];
+            const type2 = indicators[2];
+            const period2 = indicators[3];
+            const type3 = indicators[4];
+            const period3 = indicators[5];
+
+            html += '<div class="col-md-4 mb-2">';
+            html += '<button type="button" class="btn ' + buttonClass + ' btn-sm w-100" onclick="setIndicatorCombo(\'' + type1 + '\', ' + period1 + ', \'' + type2 + '\', ' + period2 + ', \'' + type3 + '\', ' + period3 + ')">';
+            html += '<i class="bi bi-star"></i> ' + combo.name;
+            html += '<small class="d-block">' + combo.desc + '</small>';
+            html += '</button>';
+            html += '</div>';
+        });
+
+        combinationsContainer.innerHTML = html;
+    }
+
     // Функция обновления подсказок для интервалов
     function updateIntervalHelp() {
         const intervalSelect = document.getElementById('intervalSelect');
@@ -422,18 +517,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedInterval = intervalSelect.value;
         const info = intervalInfo[selectedInterval] || intervalInfo[''];
 
-        let helpHtml = `<i class="bi bi-info-circle"></i> ${info}`;
+        let helpHtml = '<i class="bi bi-info-circle"></i> ' + info;
 
-        // Предупреждения о совместимости с VWAP
         if (vwapCompatibleIntervals.includes(selectedInterval)) {
-            helpHtml += `<br><small class="text-success"><i class="bi bi-check-circle"></i> VWAP compatible</small>`;
+            helpHtml += '<br><small class="text-success"><i class="bi bi-check-circle"></i> VWAP compatible</small>';
         } else if (selectedInterval && !vwapCompatibleIntervals.includes(selectedInterval)) {
-            helpHtml += `<br><small class="text-warning"><i class="bi bi-exclamation-triangle"></i> VWAP not available (intraday only)</small>`;
+            helpHtml += '<br><small class="text-warning"><i class="bi bi-exclamation-triangle"></i> VWAP not available (intraday only)</small>';
         }
 
-        // Информация о данных
         if (selectedInterval && selectedInterval.includes('adjusted')) {
-            helpHtml += `<br><small class="text-primary"><i class="bi bi-gear"></i> Includes split/dividend adjustments</small>`;
+            helpHtml += '<br><small class="text-primary"><i class="bi bi-gear"></i> Includes split/dividend adjustments</small>';
         }
 
         helpElement.innerHTML = helpHtml;
@@ -442,8 +535,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обработчик изменения интервала
     const intervalSelect = document.getElementById('intervalSelect');
     if (intervalSelect) {
-        intervalSelect.addEventListener('change', updateIntervalHelp);
-        updateIntervalHelp(); // Инициализация
+        intervalSelect.addEventListener('change', function() {
+            updateIntervalHelp();
+            updateIntervalCombinations();
+        });
+        updateIntervalHelp();
+        updateIntervalCombinations();
     }
 
     // Управление периодами индикаторов
@@ -451,18 +548,50 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selectElement || !periodElement) return;
 
         const selectedValue = selectElement.value;
+        const hiddenInput = document.getElementById(periodElement.id + 'Hidden');
 
         if (noPeriodIndicators.includes(selectedValue)) {
             periodElement.style.display = 'none';
-            periodElement.removeAttribute('required');
-            periodElement.value = '0';
+            if (hiddenInput) {
+                hiddenInput.value = '0';
+            }
         } else {
             periodElement.style.display = 'block';
-            periodElement.setAttribute('required', 'required');
             if (periodElement.value === '0' || periodElement.value === '') {
                 periodElement.value = '14';
             }
+            if (hiddenInput) {
+                hiddenInput.value = periodElement.value;
+            }
         }
+    }
+
+    // Синхронизация видимых и скрытых полей
+    function syncPeriodFields() {
+        const periodPairs = [
+            { visible: 'firstPeriod', hidden: 'firstPeriodHidden' },
+            { visible: 'secondPeriod', hidden: 'secondPeriodHidden' },
+            { visible: 'thirdPeriod', hidden: 'thirdPeriodHidden' }
+        ];
+
+        periodPairs.forEach(function(pair) {
+            const visibleField = document.getElementById(pair.visible);
+            const hiddenField = document.getElementById(pair.hidden);
+
+            if (visibleField && hiddenField) {
+                visibleField.addEventListener('input', function() {
+                    if (this.style.display !== 'none') {
+                        hiddenField.value = this.value;
+                    }
+                });
+
+                visibleField.addEventListener('change', function() {
+                    if (this.style.display !== 'none') {
+                        hiddenField.value = this.value;
+                    }
+                });
+            }
+        });
     }
 
     // Инициализация индикаторов
@@ -472,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { select: document.getElementById('thirdIndicatorType'), period: document.getElementById('thirdPeriod') }
     ];
 
-    indicators.forEach(indicator => {
+    indicators.forEach(function(indicator) {
         if (indicator.select && indicator.period) {
             togglePeriodField(indicator.select, indicator.period);
             indicator.select.addEventListener('change', function() {
@@ -481,20 +610,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    syncPeriodFields();
+
     // Функция для установки комбинаций
     window.setIndicatorCombo = function(first, firstPeriod, second, secondPeriod, third, thirdPeriod) {
         const elements = [
-            { select: document.getElementById('firstIndicatorType'), period: document.getElementById('firstPeriod'), type: first, per: firstPeriod },
-            { select: document.getElementById('secondIndicatorType'), period: document.getElementById('secondPeriod'), type: second, per: secondPeriod },
-            { select: document.getElementById('thirdIndicatorType'), period: document.getElementById('thirdPeriod'), type: third, per: thirdPeriod }
+            {
+                select: document.getElementById('firstIndicatorType'),
+                period: document.getElementById('firstPeriod'),
+                hidden: document.getElementById('firstPeriodHidden'),
+                type: first, per: firstPeriod
+            },
+            {
+                select: document.getElementById('secondIndicatorType'),
+                period: document.getElementById('secondPeriod'),
+                hidden: document.getElementById('secondPeriodHidden'),
+                type: second, per: secondPeriod
+            },
+            {
+                select: document.getElementById('thirdIndicatorType'),
+                period: document.getElementById('thirdPeriod'),
+                hidden: document.getElementById('thirdPeriodHidden'),
+                type: third, per: thirdPeriod
+            }
         ];
 
-        elements.forEach(el => {
+        elements.forEach(function(el) {
             if (el.select) {
                 el.select.value = el.type;
-                el.select.dispatchEvent(new Event('change'));
-                if (el.period && el.per > 0) {
-                    el.period.value = el.per;
+                togglePeriodField(el.select, el.period);
+
+                if (noPeriodIndicators.includes(el.type)) {
+                    if (el.hidden) {
+                        el.hidden.value = '0';
+                    }
+                } else {
+                    const periodValue = el.per > 0 ? el.per : 14;
+                    if (el.period) {
+                        el.period.value = periodValue;
+                    }
+                    if (el.hidden) {
+                        el.hidden.value = periodValue;
+                    }
                 }
             }
         });
@@ -504,13 +661,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form[th\\:action*="indicators"]');
     if (form) {
         form.addEventListener('submit', function(e) {
+            const periodPairs = [
+                { visible: 'firstPeriod', hidden: 'firstPeriodHidden', select: 'firstIndicatorType' },
+                { visible: 'secondPeriod', hidden: 'secondPeriodHidden', select: 'secondIndicatorType' },
+                { visible: 'thirdPeriod', hidden: 'thirdPeriodHidden', select: 'thirdIndicatorType' }
+            ];
+
+            periodPairs.forEach(function(pair) {
+                const visibleField = document.getElementById(pair.visible);
+                const hiddenField = document.getElementById(pair.hidden);
+                const selectField = document.getElementById(pair.select);
+
+                if (visibleField && hiddenField && selectField) {
+                    const selectedIndicator = selectField.value;
+
+                    if (noPeriodIndicators.includes(selectedIndicator)) {
+                        hiddenField.value = '0';
+                    } else {
+                        const periodValue = visibleField.value || '14';
+                        hiddenField.value = periodValue;
+                    }
+                }
+            });
+
             const interval = intervalSelect ? intervalSelect.value : '';
-
             const selectedIndicators = indicators
-                .filter(ind => ind.select && ind.select.value)
-                .map(ind => ind.select.value);
+                .filter(function(ind) { return ind.select && ind.select.value; })
+                .map(function(ind) { return ind.select.value; });
 
-            // Проверяем VWAP с интервалами
             const vwapSelected = selectedIndicators.includes('VWAP');
             if (vwapSelected && !vwapCompatibleIntervals.includes(interval)) {
                 e.preventDefault();
@@ -518,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
-            console.log('TradeBack: Form validation passed with Alpha Vantage intervals');
+            return true;
         });
     }
 

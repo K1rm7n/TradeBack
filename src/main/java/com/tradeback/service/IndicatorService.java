@@ -3,6 +3,7 @@ package com.tradeback.service;
 import com.tradeback.model.Indicator;
 import com.tradeback.model.MarketData;
 import com.tradeback.repository.MarketDataRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+@Slf4j
 @Service
 public class IndicatorService {
 
@@ -26,6 +28,9 @@ public class IndicatorService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private MarketDataService marketDataService;
+
     @Value("${api.alpha-vantage.key}")
     private String apiKey;
 
@@ -33,9 +38,18 @@ public class IndicatorService {
 
     /**
      * Универсальный метод для расчета любого технического индикатора
+     * с поддержкой правильных Alpha Vantage интервалов
      */
     public double calculateIndicator(Indicator indicator) {
         try {
+            // Валидируем комбинацию интервала и индикатора
+            if (!marketDataService.validateIntervalIndicatorCombination(
+                    indicator.getInterval(), indicator.getType().name())) {
+                log.warn("Invalid combination: {} with interval {}",
+                        indicator.getType(), indicator.getInterval());
+                return 0.0;
+            }
+
             String url = buildIndicatorUrl(indicator);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
@@ -46,7 +60,7 @@ public class IndicatorService {
             return extractIndicatorValue(response, indicator);
 
         } catch (Exception e) {
-            System.err.println("Error calculating indicator: " + e.getMessage());
+            log.error("Error calculating indicator: {}", e.getMessage());
             e.printStackTrace();
             return 0.0;
         }
@@ -57,6 +71,11 @@ public class IndicatorService {
      */
     public Indicator calculateComplexIndicator(Indicator indicator) {
         try {
+            if (!marketDataService.validateIntervalIndicatorCombination(
+                    indicator.getInterval(), indicator.getType().name())) {
+                return indicator;
+            }
+
             String url = buildIndicatorUrl(indicator);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
@@ -67,31 +86,27 @@ public class IndicatorService {
             return extractComplexIndicatorValues(response, indicator);
 
         } catch (Exception e) {
-            System.err.println("Error calculating complex indicator: " + e.getMessage());
+            log.error("Error calculating complex indicator: {}", e.getMessage());
             e.printStackTrace();
             return indicator;
         }
     }
 
     /**
-     * Построение URL для API запроса в зависимости от типа индикатора
+     * Построение URL для API запроса с учетом Alpha Vantage интервалов
      */
     private String buildIndicatorUrl(Indicator indicator) {
         StringBuilder url = new StringBuilder(BASE_URL);
         url.append("?function=").append(indicator.getType().name());
         url.append("&symbol=").append(indicator.getSymbol());
-        url.append("&interval=").append(indicator.getInterval());
+
+        // Добавляем interval для технических индикаторов
+        url.append("&interval=").append(convertIntervalForIndicators(indicator.getInterval()));
 
         // Добавляем параметры в зависимости от типа индикатора
         switch (indicator.getType()) {
             case MACD:
                 url.append("&fastperiod=12&slowperiod=26&signalperiod=9");
-                url.append("&series_type=close");
-                break;
-
-            case MACDEXT:
-                url.append("&fastperiod=12&slowperiod=26&signalperiod=9");
-                url.append("&fastmatype=0&slowmatype=0&signalmatype=0");
                 url.append("&series_type=close");
                 break;
 
@@ -106,34 +121,15 @@ public class IndicatorService {
                 url.append("&slowkmatype=0&slowdmatype=0");
                 break;
 
-            case STOCHF:
-                url.append("&fastkperiod=5&fastdperiod=3");
-                url.append("&fastdmatype=0");
-                break;
-
-            case STOCHRSI:
-                url.append("&time_period=").append(indicator.getPeriod());
-                url.append("&series_type=close");
-                url.append("&fastkperiod=5&fastdperiod=3&fastdmatype=0");
+            case VWAP:
+                // VWAP имеет особые требования к интервалам
+                if (!marketDataService.isVWAPCompatible(indicator.getInterval())) {
+                    throw new IllegalArgumentException("VWAP requires intraday interval");
+                }
                 break;
 
             case SAR:
                 url.append("&acceleration=0.02&maximum=0.20");
-                break;
-
-            case AROON:
-                url.append("&time_period=").append(indicator.getPeriod());
-                break;
-
-            case ADXR:
-                url.append("&time_period=").append(indicator.getPeriod());
-                break;
-
-            case VWAP:
-                // VWAP only works with intraday intervals
-                if (!indicator.getInterval().contains("min")) {
-                    throw new IllegalArgumentException("VWAP requires intraday interval (1min, 5min, etc.)");
-                }
                 break;
 
             // Большинство остальных индикаторов используют стандартные параметры
@@ -148,7 +144,36 @@ public class IndicatorService {
         }
 
         url.append("&apikey=").append(apiKey);
+
+        log.debug("Built indicator URL: {}", url.toString());
         return url.toString();
+    }
+
+    /**
+     * Конвертирует интервалы приложения в интервалы для технических индикаторов
+     * Технические индикаторы Alpha Vantage поддерживают другой набор интервалов
+     */
+    private String convertIntervalForIndicators(String appInterval) {
+        switch (appInterval.toLowerCase()) {
+            case "1min":
+            case "5min":
+            case "15min":
+            case "30min":
+            case "60min":
+                return appInterval; // Intraday интервалы остаются как есть
+            case "daily":
+            case "daily_adjusted":
+                return "daily";
+            case "weekly":
+            case "weekly_adjusted":
+                return "weekly";
+            case "monthly":
+            case "monthly_adjusted":
+                return "monthly";
+            default:
+                log.warn("Unknown interval for indicators: {}, defaulting to daily", appInterval);
+                return "daily";
+        }
     }
 
     /**
@@ -156,27 +181,19 @@ public class IndicatorService {
      */
     private boolean needsTimePeriod(Indicator.IndicatorType type) {
         return type != Indicator.IndicatorType.MACD &&
-                type != Indicator.IndicatorType.MACDEXT &&
                 type != Indicator.IndicatorType.STOCH &&
-                type != Indicator.IndicatorType.STOCHF &&
                 type != Indicator.IndicatorType.SAR &&
                 type != Indicator.IndicatorType.VWAP &&
-                type != Indicator.IndicatorType.AROON &&
-                type != Indicator.IndicatorType.OBV &&
-                type != Indicator.IndicatorType.AD;
+                type != Indicator.IndicatorType.OBV;
     }
 
     /**
      * Проверяет, нужен ли параметр series_type для данного индикатора
      */
     private boolean needsSeriesType(Indicator.IndicatorType type) {
-        // Большинство индикаторов используют series_type, кроме объемных и некоторых других
         return type != Indicator.IndicatorType.OBV &&
-                type != Indicator.IndicatorType.AD &&
-                type != Indicator.IndicatorType.ADOSC &&
                 type != Indicator.IndicatorType.VWAP &&
                 type != Indicator.IndicatorType.STOCH &&
-                type != Indicator.IndicatorType.STOCHF &&
                 type != Indicator.IndicatorType.SAR;
     }
 
@@ -188,7 +205,8 @@ public class IndicatorService {
         Map<String, Object> timeSeries = (Map<String, Object>) response.get(timeSeriesKey);
 
         if (timeSeries == null) {
-            System.err.println("No time series data found with key: " + timeSeriesKey);
+            log.error("No time series data found with key: {}", timeSeriesKey);
+            log.debug("Available keys: {}", response.keySet());
             return 0.0;
         }
 
@@ -206,6 +224,7 @@ public class IndicatorService {
             double value = Double.parseDouble(valueStr);
             indicator.setValue(value);
             indicator.setCalculatedAt(LocalDateTime.now());
+            log.debug("Extracted {} value: {}", indicator.getType(), value);
             return value;
         }
 
@@ -232,18 +251,13 @@ public class IndicatorService {
 
         switch (indicator.getType()) {
             case MACD:
-            case MACDEXT:
                 extractMACDValues(indicatorData, indicator);
                 break;
             case BBANDS:
                 extractBollingerBandsValues(indicatorData, indicator);
                 break;
             case STOCH:
-            case STOCHF:
                 extractStochasticValues(indicatorData, indicator);
-                break;
-            case AROON:
-                extractAroonValues(indicatorData, indicator);
                 break;
             default:
                 // Для неизвестных комплексных индикаторов пытаемся извлечь первое значение
@@ -296,17 +310,6 @@ public class IndicatorService {
     }
 
     /**
-     * Извлечение значений Aroon
-     */
-    private void extractAroonValues(Map<String, String> data, Indicator indicator) {
-        String aroonUp = data.get("Aroon Up");
-        String aroonDown = data.get("Aroon Down");
-
-        if (aroonUp != null) indicator.setValue(Double.parseDouble(aroonUp));
-        if (aroonDown != null) indicator.setSecondaryValue(Double.parseDouble(aroonDown));
-    }
-
-    /**
      * Получает ключ для извлечения значения в зависимости от типа индикатора
      */
     private String getValueKey(Indicator.IndicatorType type) {
@@ -319,20 +322,80 @@ public class IndicatorService {
                 return "EMA";
             case WMA:
                 return "WMA";
+            case DEMA:
+                return "DEMA";
+            case TEMA:
+                return "TEMA";
+            case TRIMA:
+                return "TRIMA";
+            case KAMA:
+                return "KAMA";
+            case MAMA:
+                return "MAMA";
+            case T3:
+                return "T3";
             case WILLR:
                 return "WILLR";
             case CCI:
                 return "CCI";
-            case ATR:
-                return "ATR";
-            case ADX:
-                return "ADX";
+            case CMO:
+                return "CMO";
+            case ROC:
+                return "ROC";
+            case ROCP:
+                return "ROCP";
+            case ROCR:
+                return "ROCR";
             case MFI:
                 return "MFI";
+            case BOP:
+                return "BOP";
+            case ATR:
+                return "ATR";
+            case NATR:
+                return "NATR";
+            case TRANGE:
+                return "TRANGE";
+            case ADX:
+                return "ADX";
+            case ADXR:
+                return "ADXR";
+            case DX:
+                return "DX";
+            case MINUS_DI:
+                return "MINUS_DI";
+            case PLUS_DI:
+                return "PLUS_DI";
+            case MINUS_DM:
+                return "MINUS_DM";
+            case PLUS_DM:
+                return "PLUS_DM";
+            case SAR:
+                return "SAR";
+            case TRIX:
+                return "TRIX";
             case OBV:
                 return "OBV";
             case AD:
                 return "Chaikin A/D";
+            case ADOSC:
+                return "ADOSC";
+            case VWAP:
+                return "VWAP";
+            case AVGPRICE:
+                return "AVGPRICE";
+            case MEDPRICE:
+                return "MEDPRICE";
+            case TYPPRICE:
+                return "TYPPRICE";
+            case WCLPRICE:
+                return "WCLPRICE";
+            case HT_DCPERIOD:
+                return "HT_DCPERIOD";
+            case HT_DCPHASE:
+                return "HT_DCPHASE";
+            case HT_TRENDMODE:
+                return "HT_TRENDMODE";
             default:
                 return type.name();
         }
@@ -353,20 +416,69 @@ public class IndicatorService {
      */
     private boolean isValidApiResponse(Map<String, Object> response) {
         if (response == null) {
-            System.err.println("No response from Alpha Vantage API");
+            log.error("No response from Alpha Vantage API");
             return false;
         }
 
         if (response.containsKey("Error Message")) {
-            System.err.println("Alpha Vantage API Error: " + response.get("Error Message"));
+            log.error("Alpha Vantage API Error: {}", response.get("Error Message"));
             return false;
         }
 
         if (response.containsKey("Note")) {
-            System.err.println("Alpha Vantage API Note: " + response.get("Note"));
+            log.warn("Alpha Vantage API Note: {}", response.get("Note"));
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Вспомогательный метод для получения последних рыночных данных
+     */
+    public MarketData getLatestMarketData(String symbol) {
+        List<MarketData> dataList = marketDataRepository.findTopBySymbolOrderByDateDesc(symbol);
+        return dataList.isEmpty() ? null : dataList.get(0);
+    }
+
+    /**
+     * Метод для получения текущей цены из индикаторов или рыночных данных
+     */
+    public double getCurrentPrice(String symbol) {
+        // Пытаемся получить текущую цену из последних рыночных данных
+        MarketData latestData = getLatestMarketData(symbol);
+        if (latestData != null) {
+            return latestData.getClosePriceAsDouble();
+        }
+
+        // Если данных нет, возвращаем 0
+        log.warn("No current price data available for symbol: {}", symbol);
+        return 0.0;
+    }
+
+    /**
+     * Проверяет поддерживается ли указанный индикатор
+     */
+    public boolean isIndicatorSupported(String indicatorType) {
+        try {
+            Indicator.IndicatorType.valueOf(indicatorType.toUpperCase());
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Получает описание индикатора
+     */
+    public String getIndicatorDescription(Indicator.IndicatorType type) {
+        return type.getDescription();
+    }
+
+    /**
+     * Проверяет, является ли индикатор комплексным (возвращающим несколько значений)
+     */
+    public boolean isComplexIndicator(Indicator.IndicatorType type) {
+        return type.isComplexIndicator();
     }
 }

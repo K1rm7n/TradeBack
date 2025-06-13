@@ -33,21 +33,32 @@ public class RecWebController {
         if (currentUser != null) {
             model.addAttribute("user", currentUser);
 
-            // Используем новый метод для получения ограниченного количества записей
+            // Используем новый метод для получения ограиченного количества записей
             List<UserHistory> recentHistory = userHistoryService.getRecentUserHistory(currentUser.toString(), 5);
             model.addAttribute("recentHistory", recentHistory);
         }
 
-        // ИСПРАВЛЕНО: добавляем и все символы для dropdown, и популярные отдельно
-        model.addAttribute("symbols", marketDataService.getListOfSymbols()); // Все символы для select
-        model.addAttribute("popularSymbols", marketDataService.getPopularSymbols()); // Популярные для отображения
+        try {
+            // Добавляем и все символы для dropdown, и популярные отдельно
+            model.addAttribute("symbols", marketDataService.getListOfSymbols());
+            model.addAttribute("popularSymbols", marketDataService.getPopularSymbols());
+        } catch (Exception e) {
+            // Если ошибка с получением символов, создаем пустые списки
+            model.addAttribute("symbols", List.of());
+            model.addAttribute("popularSymbols", List.of());
+            model.addAttribute("error", "Error loading symbols: " + e.getMessage());
+        }
+
         model.addAttribute("title", "Welcome to TradeBack");
+
+        // ✅ ОБЯЗАТЕЛЬНО: создаем пустой объект для формы
         model.addAttribute("indicator", new IndicatorRequest());
+
         return "index";
     }
 
     @PostMapping("/indicators")
-    public String applyIndicator(@Valid @ModelAttribute IndicatorRequest indicator,
+    public String applyIndicator(@Valid @ModelAttribute("indicator") IndicatorRequest indicator,
                                  BindingResult bindingResult,
                                  Model model, HttpSession session) {
         Object currentUser = session.getAttribute(ApplicationConstants.USER_SESSION_KEY);
@@ -56,43 +67,68 @@ public class RecWebController {
         }
 
         model.addAttribute("user", currentUser);
-        model.addAttribute("symbols", marketDataService.getListOfSymbols());
+
+        // ✅ ВАЖНО: всегда добавляем символы в модель
+        try {
+            model.addAttribute("symbols", marketDataService.getListOfSymbols());
+        } catch (Exception e) {
+            model.addAttribute("symbols", List.of());
+        }
 
         if (bindingResult.hasErrors()) {
-            // ИСПРАВЛЕНО: добавляем популярные символы при ошибке валидации
-            model.addAttribute("popularSymbols", marketDataService.getPopularSymbols());
+            // При ошибке валидации - возвращаем на главную с ошибками
+            try {
+                model.addAttribute("popularSymbols", marketDataService.getPopularSymbols());
+            } catch (Exception e) {
+                model.addAttribute("popularSymbols", List.of());
+            }
             model.addAttribute("title", "Welcome to TradeBack");
             return "index";
         }
 
         try {
+            // ✅ Генерируем сигналы
             Map<String, Object> result = signalService.generateSignals(indicator);
             Signal generatedSignal = (Signal) result.get("signal");
 
+            // Сохраняем запрос в историю
             userHistoryService.saveRequest(
                     currentUser.toString(),
                     indicator,
                     generatedSignal.getDescription()
             );
 
-            // Add data to model for display
+            // Добавляем данные для отображения результатов
             model.addAttribute("signal", generatedSignal);
             model.addAttribute("firstIndicatorValue", result.get("firstIndicatorValue"));
             model.addAttribute("secondIndicatorValue", result.get("secondIndicatorValue"));
             model.addAttribute("thirdIndicatorValue", result.get("thirdIndicatorValue"));
             model.addAttribute("currentSymbol", indicator.getSymbol());
 
-            // Get market data for display
-            List<MarketData> marketData = marketDataService.getStockData(indicator.getSymbol());
-            model.addAttribute("marketData", marketData);
+            // Получаем рыночные данные для отображения
+            try {
+                List<MarketData> marketData = marketDataService.getStockData(indicator.getSymbol());
+                model.addAttribute("marketData", marketData);
+            } catch (Exception e) {
+                model.addAttribute("marketData", List.of());
+                model.addAttribute("marketDataError", "Could not load market data: " + e.getMessage());
+            }
+
             model.addAttribute("indicator", indicator);
+            model.addAttribute("title", "Analysis Results");
 
             return "indicators";
+
         } catch (Exception e) {
+            // При ошибке анализа - возвращаем на главную с ошибкой
             model.addAttribute("error", "Error generating analysis: " + e.getMessage());
-            // ИСПРАВЛЕНО: добавляем популярные символы при ошибке
-            model.addAttribute("popularSymbols", marketDataService.getPopularSymbols());
+            try {
+                model.addAttribute("popularSymbols", marketDataService.getPopularSymbols());
+            } catch (Exception ex) {
+                model.addAttribute("popularSymbols", List.of());
+            }
             model.addAttribute("title", "Welcome to TradeBack");
+            model.addAttribute("indicator", indicator); // Сохраняем введенные данные
             return "index";
         }
     }
