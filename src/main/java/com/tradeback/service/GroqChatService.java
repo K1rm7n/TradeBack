@@ -125,93 +125,112 @@ public class GroqChatService {
      * Получает описание индикатора с учетом периода
      */
     private String getIndicatorDescription(String indicatorType, int period) {
+        // Список индикаторов без периода
+        boolean noPeriod = period == 0 || isNoPeriodIndicator(indicatorType);
+
         switch (indicatorType.toUpperCase()) {
             case "SMA":
-                return "SMA(" + period + ")";
+                return noPeriod ? "SMA" : "SMA(" + period + ")";
             case "EMA":
-                return "EMA(" + period + ")";
+                return noPeriod ? "EMA" : "EMA(" + period + ")";
             case "WMA":
-                return "WMA(" + period + ")";
+                return noPeriod ? "WMA" : "WMA(" + period + ")";
             case "DEMA":
-                return "DEMA(" + period + ")";
+                return noPeriod ? "DEMA" : "DEMA(" + period + ")";
             case "TEMA":
-                return "TEMA(" + period + ")";
+                return noPeriod ? "TEMA" : "TEMA(" + period + ")";
             case "TRIMA":
-                return "TRIMA(" + period + ")";
+                return noPeriod ? "TRIMA" : "TRIMA(" + period + ")";
             case "KAMA":
-                return "KAMA(" + period + ")";
+                return noPeriod ? "KAMA" : "KAMA(" + period + ")";
             case "MAMA":
-                return "MAMA(" + period + ")";
+                return noPeriod ? "MAMA" : "MAMA(" + period + ")";
             case "T3":
-                return "T3(" + period + ")";
+                return noPeriod ? "T3" : "T3(" + period + ")";
             case "RSI":
-                return "RSI(" + period + ")";
+                return noPeriod ? "RSI" : "RSI(" + period + ")";
             case "STOCH":
-                return "Stochastic Oscillator";
+                return "Stochastic Oscillator (5,3,3)"; // Fixed parameters
             case "STOCHF":
                 return "Stochastic Fast";
             case "STOCHRSI":
-                return "Stochastic RSI(" + period + ")";
+                return noPeriod ? "Stochastic RSI" : "Stochastic RSI(" + period + ")";
             case "WILLR":
-                return "Williams %R(" + period + ")";
+                return noPeriod ? "Williams %R" : "Williams %R(" + period + ")";
             case "CCI":
-                return "CCI(" + period + ")";
+                return noPeriod ? "CCI" : "CCI(" + period + ")";
             case "CMO":
-                return "CMO(" + period + ")";
+                return noPeriod ? "CMO" : "CMO(" + period + ")";
             case "ROC":
-                return "ROC(" + period + ")";
+                return noPeriod ? "ROC" : "ROC(" + period + ")";
             case "MFI":
-                return "MFI(" + period + ")";
+                return noPeriod ? "MFI" : "MFI(" + period + ")";
             case "BOP":
                 return "Balance of Power";
             case "MACD":
-                return "MACD(12,26,9)";
+                return "MACD(12,26,9)"; // Fixed parameters
             case "MACDEXT":
                 return "MACD Extended";
             case "PPO":
-                return "PPO(" + period + ")";
+                return noPeriod ? "PPO" : "PPO(" + period + ")";
             case "APO":
-                return "APO(" + period + ")";
+                return noPeriod ? "APO" : "APO(" + period + ")";
             case "BBANDS":
-                return "Bollinger Bands(" + period + ")";
+                return noPeriod ? "Bollinger Bands(20)" : "Bollinger Bands(" + period + ")";
             case "KELTNER":
-                return "Keltner Channel(" + period + ")";
+                return noPeriod ? "Keltner Channel" : "Keltner Channel(" + period + ")";
             case "DONCHIAN":
-                return "Donchian Channel(" + period + ")";
+                return noPeriod ? "Donchian Channel" : "Donchian Channel(" + period + ")";
             case "AD":
                 return "Chaikin A/D Line";
             case "ADOSC":
                 return "Chaikin A/D Oscillator";
             case "OBV":
-                return "On Balance Volume";
+                return "On Balance Volume"; // No period
             case "VWAP":
-                return "VWAP";
+                return "VWAP"; // No period
             case "ATR":
-                return "ATR(" + period + ")";
+                return noPeriod ? "ATR" : "ATR(" + period + ")";
             case "NATR":
-                return "NATR(" + period + ")";
+                return noPeriod ? "NATR" : "NATR(" + period + ")";
             case "TRANGE":
                 return "True Range";
             case "ADX":
-                return "ADX(" + period + ")";
+                return noPeriod ? "ADX" : "ADX(" + period + ")";
             case "ADXR":
-                return "ADXR(" + period + ")";
+                return noPeriod ? "ADXR" : "ADXR(" + period + ")";
             case "AROON":
-                return "Aroon(" + period + ")";
+                return noPeriod ? "Aroon" : "Aroon(" + period + ")";
             case "AROONOSC":
-                return "Aroon Oscillator(" + period + ")";
+                return noPeriod ? "Aroon Oscillator" : "Aroon Oscillator(" + period + ")";
             case "DX":
-                return "DX(" + period + ")";
+                return noPeriod ? "DX" : "DX(" + period + ")";
             case "MINUS_DI":
-                return "Minus DI(" + period + ")";
+                return noPeriod ? "Minus DI" : "Minus DI(" + period + ")";
             case "PLUS_DI":
-                return "Plus DI(" + period + ")";
+                return noPeriod ? "Plus DI" : "Plus DI(" + period + ")";
             case "SAR":
-                return "Parabolic SAR";
+                return "Parabolic SAR(0.02,0.20)"; // Fixed parameters
             case "TRIX":
-                return "TRIX(" + period + ")";
+                return noPeriod ? "TRIX" : "TRIX(" + period + ")";
             default:
-                return indicatorType + "(" + period + ")";
+                return noPeriod || period == 0 ? indicatorType : indicatorType + "(" + period + ")";
+        }
+    }
+
+    /**
+     * Проверяет, является ли индикатор не требующим периода
+     */
+    private boolean isNoPeriodIndicator(String indicatorType) {
+        switch (indicatorType.toUpperCase()) {
+            case "MACD":
+            case "STOCH":
+            case "SAR":
+            case "VWAP":
+            case "OBV":
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -376,14 +395,20 @@ public class GroqChatService {
     private String getBullishReasoning(String firstType, double firstValue, String secondType, double secondValue, String thirdType, double thirdValue) {
         StringBuilder reasoning = new StringBuilder();
 
-        if (firstType.equals("RSI") && firstValue < 30) {
+        if (firstType.toUpperCase().equals("RSI") && firstValue < 30) {
             reasoning.append("RSI shows oversold conditions. ");
         }
-        if (secondType.contains("MA") || secondType.equals("VWAP")) {
+        if ((secondType.toUpperCase().contains("MA") || secondType.toUpperCase().equals("VWAP")) && secondValue > 0) {
             reasoning.append("Price is above key moving average/VWAP support. ");
         }
-        if (thirdType.equals("MACD") && thirdValue > 0) {
+        if (thirdType.toUpperCase().equals("MACD") && thirdValue > 0) {
             reasoning.append("MACD indicates positive momentum. ");
+        }
+        if (firstType.toUpperCase().equals("STOCH") && firstValue < 20) {
+            reasoning.append("Stochastic oscillator shows oversold conditions. ");
+        }
+        if (secondType.toUpperCase().equals("CCI") && secondValue < -100) {
+            reasoning.append("CCI confirms oversold conditions. ");
         }
 
         if (reasoning.length() == 0) {
@@ -399,14 +424,20 @@ public class GroqChatService {
     private String getBearishReasoning(String firstType, double firstValue, String secondType, double secondValue, String thirdType, double thirdValue) {
         StringBuilder reasoning = new StringBuilder();
 
-        if (firstType.equals("RSI") && firstValue > 70) {
+        if (firstType.toUpperCase().equals("RSI") && firstValue > 70) {
             reasoning.append("RSI indicates overbought conditions. ");
         }
-        if (secondType.contains("MA") || secondType.equals("VWAP")) {
+        if ((secondType.toUpperCase().contains("MA") || secondType.toUpperCase().equals("VWAP")) && secondValue > 0) {
             reasoning.append("Price is below key moving average/VWAP resistance. ");
         }
-        if (thirdType.equals("MACD") && thirdValue < 0) {
+        if (thirdType.toUpperCase().equals("MACD") && thirdValue < 0) {
             reasoning.append("MACD shows negative momentum. ");
+        }
+        if (firstType.toUpperCase().equals("STOCH") && firstValue > 80) {
+            reasoning.append("Stochastic oscillator signals overbought territory. ");
+        }
+        if (secondType.toUpperCase().equals("CCI") && secondValue > 100) {
+            reasoning.append("CCI confirms overbought conditions. ");
         }
 
         if (reasoning.length() == 0) {
@@ -420,7 +451,23 @@ public class GroqChatService {
      * Генерирует объяснение для смешанных сигналов
      */
     private String getMixedSignalReasoning(String firstType, double firstValue, String secondType, double secondValue, String thirdType, double thirdValue) {
-        return "Technical indicators are providing conflicting signals, suggesting a consolidation phase or potential trend reversal.";
+        StringBuilder reasoning = new StringBuilder();
+        reasoning.append("Technical indicators are providing conflicting signals. ");
+
+        // Добавляем специфичные детали о конфликтующих индикаторах
+        if (firstType.toUpperCase().equals("RSI")) {
+            if (firstValue > 50 && firstValue < 70) {
+                reasoning.append("RSI at ").append(String.format("%.1f", firstValue)).append(" shows neutral momentum. ");
+            }
+        }
+
+        if (secondType.toUpperCase().contains("MA") || thirdType.toUpperCase().contains("MA")) {
+            reasoning.append("Moving averages suggest consolidation phase. ");
+        }
+
+        reasoning.append("Consider waiting for clearer directional confirmation before taking action.");
+
+        return reasoning.toString();
     }
 
     /**

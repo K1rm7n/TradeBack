@@ -194,6 +194,160 @@ public class MarketDataService {
     }
 
     /**
+     * Получает данные последнего торгового дня для любого символа
+     */
+    public List<MarketData> getLastTradingDayData(String symbol) {
+        try {
+            log.info("Fetching last trading day data for symbol: {}", symbol);
+
+            // Используем DAILY функцию Alpha Vantage - она всегда возвращает последний торговый день
+            String url = String.format("%s?function=TIME_SERIES_DAILY&symbol=%s&outputsize=compact&apikey=%s",
+                    baseUrl, symbol, apiKey);
+
+            log.debug("API URL: {}", url);
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+            if (!isValidResponse(response, symbol)) {
+                log.error("Invalid response for symbol: {}", symbol);
+                return new ArrayList<>();
+            }
+
+            // Получаем временной ряд
+            Map<String, Object> timeSeries = (Map<String, Object>) response.get("Time Series (Daily)");
+
+            if (timeSeries == null || timeSeries.isEmpty()) {
+                log.error("No daily time series data found for symbol: {}", symbol);
+                return new ArrayList<>();
+            }
+
+            log.info("Found {} days of data for {}", timeSeries.size(), symbol);
+
+            List<MarketData> dataList = new ArrayList<>();
+
+            // Конвертируем все данные
+            for (Map.Entry<String, Object> entry : timeSeries.entrySet()) {
+                try {
+                    MarketData marketData = parseMarketDataEntry(symbol, entry.getKey(),
+                            (Map<String, String>) entry.getValue(), "daily");
+                    if (marketData != null) {
+                        dataList.add(marketData);
+                    }
+                } catch (Exception e) {
+                    log.debug("Error parsing entry for {}: {}", entry.getKey(), e.getMessage());
+                }
+            }
+
+            // Сортируем по дате (самые новые первыми)
+            dataList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+
+            log.info("Successfully parsed {} data points for {}, latest date: {}",
+                    dataList.size(), symbol,
+                    dataList.isEmpty() ? "none" : dataList.get(0).getDate());
+
+            return dataList;
+
+        } catch (Exception e) {
+            log.error("Error fetching last trading day data for {}: {}", symbol, e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Получает конкретно данные последнего торгового дня (только 1 запись)
+     */
+    public MarketData getLatestTradingDayData(String symbol) {
+        List<MarketData> dataList = getLastTradingDayData(symbol);
+
+        if (!dataList.isEmpty()) {
+            MarketData latest = dataList.get(0);
+            log.info("Latest trading day data for {}: {} (price: ${})",
+                    symbol, latest.getDate(), latest.getClosePriceAsDouble());
+            return latest;
+        }
+
+        log.warn("No latest trading day data found for symbol: {}", symbol);
+        return null;
+    }
+
+    /**
+     * Проверяет доступность символа через API
+     */
+    public boolean isSymbolValid(String symbol) {
+        try {
+            log.info("Validating symbol: {}", symbol);
+
+            // Быстрая проверка через GLOBAL_QUOTE (1 API call)
+            String url = String.format("%s?function=GLOBAL_QUOTE&symbol=%s&apikey=%s",
+                    baseUrl, symbol, apiKey);
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+            if (response == null) {
+                return false;
+            }
+
+            // Проверяем наличие данных котировки
+            Map<String, Object> quote = (Map<String, Object>) response.get("Global Quote");
+
+            if (quote != null && !quote.isEmpty()) {
+                String price = (String) quote.get("05. price");
+                boolean isValid = price != null && !price.equals("0.0000");
+                log.info("Symbol {} validation: {} (price: {})", symbol, isValid ? "VALID" : "INVALID", price);
+                return isValid;
+            }
+
+            log.warn("Symbol {} validation failed: no quote data", symbol);
+            return false;
+
+        } catch (Exception e) {
+            log.error("Error validating symbol {}: {}", symbol, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Получает текущую цену символа (последний торговый день)
+     */
+    public double getCurrentPrice(String symbol) {
+        try {
+            log.info("Getting current price for: {}", symbol);
+
+            // Сначала пробуем GLOBAL_QUOTE (быстрее)
+            String url = String.format("%s?function=GLOBAL_QUOTE&symbol=%s&apikey=%s",
+                    baseUrl, symbol, apiKey);
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+            if (isValidResponse(response, symbol)) {
+                Map<String, Object> quote = (Map<String, Object>) response.get("Global Quote");
+
+                if (quote != null) {
+                    String priceStr = (String) quote.get("05. price");
+                    if (priceStr != null && !priceStr.equals("0.0000")) {
+                        double price = Double.parseDouble(priceStr);
+                        log.info("Current price for {}: ${}", symbol, price);
+                        return price;
+                    }
+                }
+            }
+
+            // Fallback: используем последний торговый день
+            MarketData latestData = getLatestTradingDayData(symbol);
+            if (latestData != null) {
+                return latestData.getClosePriceAsDouble();
+            }
+
+            log.warn("No current price found for symbol: {}", symbol);
+            return 0.0;
+
+        } catch (Exception e) {
+            log.error("Error getting current price for {}: {}", symbol, e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
      * Парсит отдельную запись данных о рынке
      */
     private MarketData parseMarketDataEntry(String symbol, String dateStr,

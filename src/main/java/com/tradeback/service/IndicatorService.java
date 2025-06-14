@@ -38,30 +38,34 @@ public class IndicatorService {
 
     /**
      * Универсальный метод для расчета любого технического индикатора
-     * с поддержкой правильных Alpha Vantage интервалов
      */
     public double calculateIndicator(Indicator indicator) {
         try {
+            log.info("Calculating indicator: {} for symbol: {} with interval: {} and period: {}",
+                    indicator.getType(), indicator.getSymbol(), indicator.getInterval(), indicator.getPeriod());
+
             // Валидируем комбинацию интервала и индикатора
             if (!marketDataService.validateIntervalIndicatorCombination(
                     indicator.getInterval(), indicator.getType().name())) {
-                log.warn("Invalid combination: {} with interval {}",
-                        indicator.getType(), indicator.getInterval());
+                log.warn("Invalid combination: {} with interval {}", indicator.getType(), indicator.getInterval());
                 return 0.0;
             }
 
             String url = buildIndicatorUrl(indicator);
+            log.info("API URL: {}", url);
+
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            log.info("API Response keys: {}", response != null ? response.keySet() : "null");
 
             if (!isValidApiResponse(response)) {
+                log.error("Invalid API response for indicator: {}", indicator.getType());
                 return 0.0;
             }
 
             return extractIndicatorValue(response, indicator);
 
         } catch (Exception e) {
-            log.error("Error calculating indicator: {}", e.getMessage());
-            e.printStackTrace();
+            log.error("Error calculating indicator {}: {}", indicator.getType(), e.getMessage(), e);
             return 0.0;
         }
     }
@@ -200,36 +204,68 @@ public class IndicatorService {
     }
 
     /**
-     * Извлекает значение простого индикатора из ответа API
+     * УЛУЧШЕННОЕ извлечение значения индикатора
      */
     private double extractIndicatorValue(Map<String, Object> response, Indicator indicator) {
         String timeSeriesKey = "Technical Analysis: " + indicator.getType().name();
         Map<String, Object> timeSeries = (Map<String, Object>) response.get(timeSeriesKey);
 
+        log.debug("Looking for time series key: {}", timeSeriesKey);
+        log.debug("Available keys in response: {}", response.keySet());
+
         if (timeSeries == null) {
-            log.error("No time series data found with key: {}", timeSeriesKey);
-            log.debug("Available keys: {}", response.keySet());
+            // Попробуем найти альтернативные ключи
+            for (String key : response.keySet()) {
+                if (key.contains(indicator.getType().name()) || key.contains("Technical Analysis")) {
+                    log.info("Found alternative time series key: {}", key);
+                    timeSeries = (Map<String, Object>) response.get(key);
+                    break;
+                }
+            }
+        }
+
+        if (timeSeries == null) {
+            log.error("No time series data found with key: {} or alternatives", timeSeriesKey);
             return 0.0;
         }
+
+        log.debug("Time series data keys: {}", timeSeries.keySet());
 
         // Получаем последнее доступное значение
         String latestDate = getLatestDate(timeSeries.keySet());
         if (latestDate == null) {
+            log.error("No valid dates found in time series");
             return 0.0;
         }
 
+        log.debug("Latest date found: {}", latestDate);
+
         Map<String, String> indicatorData = (Map<String, String>) timeSeries.get(latestDate);
+        if (indicatorData == null) {
+            log.error("No indicator data found for date: {}", latestDate);
+            return 0.0;
+        }
+
+        log.debug("Indicator data for {}: {}", latestDate, indicatorData);
+
         String valueKey = getValueKey(indicator.getType());
         String valueStr = indicatorData.get(valueKey);
 
-        if (valueStr != null) {
-            double value = Double.parseDouble(valueStr);
-            indicator.setValue(value);
-            indicator.setCalculatedAt(LocalDateTime.now());
-            log.debug("Extracted {} value: {}", indicator.getType(), value);
-            return value;
+        log.debug("Looking for value key: {}, found value: {}", valueKey, valueStr);
+
+        if (valueStr != null && !valueStr.isEmpty()) {
+            try {
+                double value = Double.parseDouble(valueStr);
+                indicator.setValue(value);
+                indicator.setCalculatedAt(LocalDateTime.now());
+                log.info("Successfully extracted {} value: {}", indicator.getType(), value);
+                return value;
+            } catch (NumberFormatException e) {
+                log.error("Failed to parse indicator value: {}", valueStr, e);
+            }
         }
 
+        log.error("No valid value found for indicator: {}", indicator.getType());
         return 0.0;
     }
 
@@ -414,7 +450,7 @@ public class IndicatorService {
     }
 
     /**
-     * Проверяет валидность ответа от API
+     * УЛУЧШЕННАЯ проверка валидности ответа API
      */
     private boolean isValidApiResponse(Map<String, Object> response) {
         if (response == null) {
@@ -422,13 +458,31 @@ public class IndicatorService {
             return false;
         }
 
+        log.debug("API Response: {}", response);
+
         if (response.containsKey("Error Message")) {
             log.error("Alpha Vantage API Error: {}", response.get("Error Message"));
             return false;
         }
 
         if (response.containsKey("Note")) {
-            log.warn("Alpha Vantage API Note: {}", response.get("Note"));
+            String note = (String) response.get("Note");
+            log.warn("Alpha Vantage API Note: {}", note);
+
+            // Если это предупреждение о лимитах, но данные есть, продолжаем
+            if (note.contains("API call frequency") && response.size() > 1) {
+                log.info("Rate limit warning, but data is present, continuing...");
+                return true;
+            }
+            return false;
+        }
+
+        // Проверяем наличие данных временного ряда
+        boolean hasTimeSeriesData = response.keySet().stream()
+                .anyMatch(key -> key.contains("Technical Analysis") || key.contains("Time Series"));
+
+        if (!hasTimeSeriesData) {
+            log.error("No time series data found in response. Available keys: {}", response.keySet());
             return false;
         }
 
@@ -444,17 +498,45 @@ public class IndicatorService {
     }
 
     /**
-     * Метод для получения текущей цены из индикаторов или рыночных данных
+     * Получение текущей цены с улучшенным fallback
      */
     public double getCurrentPrice(String symbol) {
-        // Пытаемся получить текущую цену из последних рыночных данных
+        log.info("Getting current price for symbol: {}", symbol);
+
+        // 1. Сначала пытаемся получить из базы данных
         MarketData latestData = getLatestMarketData(symbol);
         if (latestData != null) {
-            return latestData.getClosePriceAsDouble();
+            double price = latestData.getClosePriceAsDouble();
+            log.info("Found current price from database: {} for {}", price, symbol);
+            return price;
         }
 
-        // Если данных нет, возвращаем 0
-        log.warn("No current price data available for symbol: {}", symbol);
+        // 2. Если данных нет в базе, получаем текущую цену через MarketDataService
+        log.info("No data in database, fetching current price from API for: {}", symbol);
+        try {
+            double apiPrice = marketDataService.getCurrentPrice(symbol);
+            if (apiPrice > 0) {
+                log.info("Found current price from API: {} for {}", apiPrice, symbol);
+                return apiPrice;
+            }
+        } catch (Exception e) {
+            log.error("Failed to get current price from MarketDataService for {}: {}", symbol, e.getMessage());
+        }
+
+        // 3. Последняя попытка: получаем данные последнего торгового дня
+        try {
+            log.info("Trying to get last trading day data for: {}", symbol);
+            MarketData lastTradingDayData = marketDataService.getLatestTradingDayData(symbol);
+            if (lastTradingDayData != null) {
+                double price = lastTradingDayData.getClosePriceAsDouble();
+                log.info("Found price from last trading day: {} for {}", price, symbol);
+                return price;
+            }
+        } catch (Exception e) {
+            log.error("Failed to get last trading day data for {}: {}", symbol, e.getMessage());
+        }
+
+        log.warn("No current price data available for symbol: {}, returning 0.0", symbol);
         return 0.0;
     }
 

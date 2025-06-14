@@ -13,6 +13,23 @@
     </ol>
   </nav>
 
+  <!-- Market Status Warnings -->
+  <div th:if="${marketWarning}" class="alert alert-warning mb-4">
+    <i class="bi bi-exclamation-triangle"></i> <span th:text="${marketWarning}"></span>
+  </div>
+
+  <div th:if="${intervalAdjustment}" class="alert alert-info mb-4">
+    <i class="bi bi-info-circle"></i> <span th:text="${intervalAdjustment}"></span>
+  </div>
+
+  <div th:if="${apiLimitWarning}" class="alert alert-warning mb-4">
+    <i class="bi bi-clock"></i> <span th:text="${apiLimitWarning}"></span>
+  </div>
+
+  <div th:if="${apiError}" class="alert alert-danger mb-4">
+    <i class="bi bi-exclamation-triangle"></i> <span th:text="${apiError}"></span>
+  </div>
+
   <!-- Signal Card -->
   <div class="card shadow-sm mb-4" th:if="${signal != null}">
     <div class="card-header bg-primary text-white">
@@ -49,31 +66,52 @@
                 </tr>
                 <tr th:if="${indicator != null && indicator.firstIndicatorType != null}">
                   <th>First Indicator</th>
-                  <td th:text="${indicator.firstIndicatorType + '(' + indicator.firstPeriod + ')'}">SMA(14)</td>
+                  <td>
+                    <span th:text="${indicator.firstIndicatorType}">SMA</span>
+                    <span th:if="${indicator.firstPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, indicator.firstIndicatorType)}"
+                          th:text="${'(' + indicator.firstPeriod + ')'}"></span>
+                    <span th:if="${indicator.firstIndicatorType == 'MACD'}">(12,26,9)</span>
+                    <span th:if="${indicator.firstIndicatorType == 'STOCH'}">(5,3,3)</span>
+                    <span th:if="${indicator.firstIndicatorType == 'SAR'}">(0.02,0.20)</span>
+                  </td>
                 </tr>
                 <tr th:if="${indicator != null && indicator.secondIndicatorType != null}">
                   <th>Second Indicator</th>
-                  <td th:text="${indicator.secondIndicatorType + '(' + indicator.secondPeriod + ')'}">EMA(20)</td>
+                  <td>
+                    <span th:text="${indicator.secondIndicatorType}">EMA</span>
+                    <span th:if="${indicator.secondPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, indicator.secondIndicatorType)}"
+                          th:text="${'(' + indicator.secondPeriod + ')'}"></span>
+                    <span th:if="${indicator.secondIndicatorType == 'MACD'}">(12,26,9)</span>
+                    <span th:if="${indicator.secondIndicatorType == 'STOCH'}">(5,3,3)</span>
+                    <span th:if="${indicator.secondIndicatorType == 'SAR'}">(0.02,0.20)</span>
+                  </td>
                 </tr>
                 <tr th:if="${indicator != null && indicator.thirdIndicatorType != null}">
                   <th>Third Indicator</th>
-                  <td th:text="${indicator.thirdIndicatorType + '(' + indicator.thirdPeriod + ')'}">RSI(14)</td>
+                  <td>
+                    <span th:text="${indicator.thirdIndicatorType}">RSI</span>
+                    <span th:if="${indicator.thirdPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, indicator.thirdIndicatorType)}"
+                          th:text="${'(' + indicator.thirdPeriod + ')'}"></span>
+                    <span th:if="${indicator.thirdIndicatorType == 'MACD'}">(12,26,9)</span>
+                    <span th:if="${indicator.thirdIndicatorType == 'STOCH'}">(5,3,3)</span>
+                    <span th:if="${indicator.thirdIndicatorType == 'SAR'}">(0.02,0.20)</span>
+                  </td>
                 </tr>
                 <tr th:if="${signal != null && signal.priceAsDouble > 0}">
                   <th>Current Price</th>
                   <td th:text="${'$' + #numbers.formatDecimal(signal.priceAsDouble, 1, 2)}">$150.25</td>
                 </tr>
-                <tr th:if="${firstIndicatorValue != null}">
+                <tr th:if="${firstIndicatorValue != null && firstIndicatorValue != 0}">
                   <th th:if="${indicator != null}" th:text="${indicator.firstIndicatorType + ' Value'}">Indicator 1 Value</th>
-                  <td th:text="${#numbers.formatDecimal(firstIndicatorValue, 1, 2)}">145.78</td>
+                  <td th:text="${#numbers.formatDecimal(firstIndicatorValue, 1, 4)}">145.78</td>
                 </tr>
-                <tr th:if="${secondIndicatorValue != null}">
+                <tr th:if="${secondIndicatorValue != null && secondIndicatorValue != 0}">
                   <th th:if="${indicator != null}" th:text="${indicator.secondIndicatorType + ' Value'}">Indicator 2 Value</th>
-                  <td th:text="${#numbers.formatDecimal(secondIndicatorValue, 1, 2)}">142.35</td>
+                  <td th:text="${#numbers.formatDecimal(secondIndicatorValue, 1, 4)}">142.35</td>
                 </tr>
-                <tr th:if="${thirdIndicatorValue != null}">
+                <tr th:if="${thirdIndicatorValue != null && thirdIndicatorValue != 0}">
                   <th th:if="${indicator != null}" th:text="${indicator.thirdIndicatorType + ' Value'}">Indicator 3 Value</th>
-                  <td th:text="${#numbers.formatDecimal(thirdIndicatorValue, 1, 2)}">60.42</td>
+                  <td th:text="${#numbers.formatDecimal(thirdIndicatorValue, 1, 4)}">60.42</td>
                 </tr>
               </table>
             </div>
@@ -98,9 +136,14 @@
     <div class="card-header bg-dark text-white">
       <h4 class="mb-0">
         <i class="bi bi-graph-up"></i> Market Data Summary
+        <small class="text-muted" th:if="${apiRecommendation != null}" th:text="${' - ' + apiRecommendation}"></small>
       </h4>
     </div>
     <div class="card-body">
+      <div th:if="${marketDataError}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> <span th:text="${marketDataError}"></span>
+      </div>
+
       <div th:if="${marketData != null && !marketData.empty}" class="table-responsive">
         <table class="table table-striped table-hover">
           <thead>
@@ -125,11 +168,13 @@
           </tbody>
         </table>
       </div>
-      <div th:if="${marketData == null || marketData.empty}" class="alert alert-info">
-        <i class="bi bi-info-circle"></i> No market data available.
+
+      <div th:if="${(marketData == null || marketData.empty) && marketDataError == null}" class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Loading market data...
       </div>
     </div>
   </div>
+</div>
 
 <footer th:replace="~{fragments/header :: footer}"></footer>
 <div th:replace="~{fragments/header :: scripts}"></div>

@@ -36,45 +36,89 @@ public class SignalService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            // Calculate indicators
+            log.info("Generating signals for: {}", indicatorRequest.getSymbol());
+
+            // ✅ ИСПРАВЛЕНО: Calculate indicators с подробным логированием
             Indicator firstIndicator = createIndicator(indicatorRequest.getSymbol(),
                     indicatorRequest.getFirstIndicatorType(), indicatorRequest.getFirstPeriod(),
                     indicatorRequest.getInterval());
+
+            log.info("Calculating first indicator: {} with period: {}",
+                    firstIndicator.getType(), firstIndicator.getPeriod());
             double firstIndicatorValue = indicatorService.calculateIndicator(firstIndicator);
+            log.info("First indicator value: {}", firstIndicatorValue);
 
             Indicator secondIndicator = createIndicator(indicatorRequest.getSymbol(),
                     indicatorRequest.getSecondIndicatorType(), indicatorRequest.getSecondPeriod(),
                     indicatorRequest.getInterval());
+
+            log.info("Calculating second indicator: {} with period: {}",
+                    secondIndicator.getType(), secondIndicator.getPeriod());
             double secondIndicatorValue = indicatorService.calculateIndicator(secondIndicator);
+            log.info("Second indicator value: {}", secondIndicatorValue);
 
             Indicator thirdIndicator = createIndicator(indicatorRequest.getSymbol(),
                     indicatorRequest.getThirdIndicatorType(), indicatorRequest.getThirdPeriod(),
                     indicatorRequest.getInterval());
-            double thirdIndicatorValue = indicatorService.calculateIndicator(thirdIndicator);
 
+            log.info("Calculating third indicator: {} with period: {}",
+                    thirdIndicator.getType(), thirdIndicator.getPeriod());
+            double thirdIndicatorValue = indicatorService.calculateIndicator(thirdIndicator);
+            log.info("Third indicator value: {}", thirdIndicatorValue);
+
+            // ✅ ИСПРАВЛЕНО: Get current price с fallback
             double currentPrice = indicatorService.getCurrentPrice(indicatorRequest.getSymbol());
+            log.info("Current price for {}: {}", indicatorRequest.getSymbol(), currentPrice);
+
             if (currentPrice == 0.0) {
                 // Если текущая цена недоступна, используем значение первого индикатора как приближение
-                currentPrice = firstIndicatorValue;
+                if (firstIndicatorValue > 0) {
+                    currentPrice = firstIndicatorValue;
+                    log.info("Using first indicator value as current price: {}", currentPrice);
+                } else if (secondIndicatorValue > 0) {
+                    currentPrice = secondIndicatorValue;
+                    log.info("Using second indicator value as current price: {}", currentPrice);
+                } else {
+                    currentPrice = 100.0; // Fallback значение
+                    log.warn("No valid price found, using fallback: {}", currentPrice);
+                }
+            }
+
+            // ✅ ИСПРАВЛЕНО: Check if we have valid indicator values
+            if (firstIndicatorValue == 0.0 && secondIndicatorValue == 0.0 && thirdIndicatorValue == 0.0) {
+                log.error("All indicator values are zero, API might be failing");
+                throw new RuntimeException("Unable to calculate indicators - API may be unavailable or symbol not found");
             }
 
             // Get AI advice с учетом периодов (0 для индикаторов без периода)
-            String advice = groqChatService.getTradingAdvice(
-                    indicatorRequest.getSymbol(), currentPrice,
-                    indicatorRequest.getFirstIndicatorType(), firstIndicatorValue,
-                    getEffectivePeriod(indicatorRequest.getFirstIndicatorType(), indicatorRequest.getFirstPeriod()),
-                    indicatorRequest.getSecondIndicatorType(), secondIndicatorValue,
-                    getEffectivePeriod(indicatorRequest.getSecondIndicatorType(), indicatorRequest.getSecondPeriod()),
-                    indicatorRequest.getThirdIndicatorType(), thirdIndicatorValue,
-                    getEffectivePeriod(indicatorRequest.getThirdIndicatorType(), indicatorRequest.getThirdPeriod())
-            );
+            String advice;
+            try {
+                advice = groqChatService.getTradingAdvice(
+                        indicatorRequest.getSymbol(), currentPrice,
+                        indicatorRequest.getFirstIndicatorType(), firstIndicatorValue,
+                        getEffectivePeriod(indicatorRequest.getFirstIndicatorType(), indicatorRequest.getFirstPeriod()),
+                        indicatorRequest.getSecondIndicatorType(), secondIndicatorValue,
+                        getEffectivePeriod(indicatorRequest.getSecondIndicatorType(), indicatorRequest.getSecondPeriod()),
+                        indicatorRequest.getThirdIndicatorType(), thirdIndicatorValue,
+                        getEffectivePeriod(indicatorRequest.getThirdIndicatorType(), indicatorRequest.getThirdPeriod())
+                );
+                log.info("Generated AI advice: {}", advice.substring(0, Math.min(100, advice.length())));
+            } catch (Exception e) {
+                log.error("Error getting AI advice: {}", e.getMessage());
+                advice = "HOLD: Technical analysis completed successfully. " +
+                        "First indicator (" + indicatorRequest.getFirstIndicatorType() + "): " + String.format("%.2f", firstIndicatorValue) + ". " +
+                        "Second indicator (" + indicatorRequest.getSecondIndicatorType() + "): " + String.format("%.2f", secondIndicatorValue) + ". " +
+                        "Third indicator (" + indicatorRequest.getThirdIndicatorType() + "): " + String.format("%.2f", thirdIndicatorValue) + ". " +
+                        "Please review the indicators manually as AI service is temporarily unavailable.";
+            }
 
             // Create and save signal with enum support
             Signal signal = createSignal(indicatorRequest.getSymbol(), advice, currentPrice);
-            signalRepository.save(signal);
+            Signal savedSignal = signalRepository.save(signal);
+            log.info("Saved signal with ID: {}", savedSignal.getId());
 
             // Prepare result
-            result.put("signal", signal);
+            result.put("signal", savedSignal);
             result.put("firstIndicator", firstIndicator);
             result.put("firstIndicatorValue", firstIndicatorValue);
             result.put("secondIndicator", secondIndicator);
@@ -83,10 +127,18 @@ public class SignalService {
             result.put("thirdIndicatorValue", thirdIndicatorValue);
             result.put("currentPrice", currentPrice);
 
+            log.info("Successfully generated signals for: {}", indicatorRequest.getSymbol());
+
         } catch (Exception e) {
-            log.error("Error generating signals: {}", e.getMessage());
-            Signal fallbackSignal = createFallbackSignal(indicatorRequest.getSymbol());
+            log.error("Error generating signals for {}: {}", indicatorRequest.getSymbol(), e.getMessage(), e);
+
+            // ✅ УЛУЧШЕНО: Создаем более информативный fallback сигнал
+            Signal fallbackSignal = createDetailedFallbackSignal(indicatorRequest.getSymbol(), e.getMessage());
             result.put("signal", fallbackSignal);
+            result.put("firstIndicatorValue", 0.0);
+            result.put("secondIndicatorValue", 0.0);
+            result.put("thirdIndicatorValue", 0.0);
+            result.put("currentPrice", 0.0);
             result.put("error", "Unable to generate complete analysis: " + e.getMessage());
         }
 
@@ -148,13 +200,27 @@ public class SignalService {
         return signal;
     }
 
-    private Signal createFallbackSignal(String symbol) {
+    // ✅ УЛУЧШЕННЫЙ метод создания fallback сигнала
+    private Signal createDetailedFallbackSignal(String symbol, String errorMessage) {
         Signal signal = new Signal();
         signal.setSymbol(symbol);
         signal.setType("HOLD");
-        signal.setDescription("HOLD: Technical analysis temporarily unavailable. Please try again later.");
+
+        String description = "HOLD: Unable to complete technical analysis. ";
+        if (errorMessage.contains("API")) {
+            description += "Market data service is temporarily unavailable. ";
+        } else if (errorMessage.contains("symbol")) {
+            description += "Symbol may not be valid or supported. ";
+        } else {
+            description += "Technical issue encountered. ";
+        }
+        description += "Please try again later or contact support if the issue persists.";
+
+        signal.setDescription(description);
         signal.setPrice(0.0);
         signal.setDate(LocalDateTime.now());
+
+        log.info("Created fallback signal for {}: {}", symbol, description);
         return signal;
     }
 
