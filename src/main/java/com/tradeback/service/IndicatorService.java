@@ -111,7 +111,9 @@ public class IndicatorService {
                 break;
 
             case BBANDS:
-                url.append("&time_period=").append(indicator.getPeriod());
+                // Для Bollinger Bands используем период если он больше 0, иначе 20
+                int bbandsPeriod = indicator.getPeriod() > 0 ? indicator.getPeriod() : 20;
+                url.append("&time_period=").append(bbandsPeriod);
                 url.append("&series_type=close");
                 url.append("&nbdevup=2&nbdevdn=2&matype=0");
                 break;
@@ -134,7 +136,7 @@ public class IndicatorService {
 
             // Большинство остальных индикаторов используют стандартные параметры
             default:
-                if (needsTimePeriod(indicator.getType())) {
+                if (needsTimePeriod(indicator.getType()) && indicator.getPeriod() > 0) {
                     url.append("&time_period=").append(indicator.getPeriod());
                 }
                 if (needsSeriesType(indicator.getType())) {

@@ -32,9 +32,29 @@
             <td th:text="${#temporals.format(item.requestTime, 'yyyy-MM-dd HH:mm')}">2025-04-29 14:30</td>
             <td th:text="${item.symbol}">AAPL</td>
             <td>
-              <span th:text="${item.firstIndicatorType + '(' + item.firstPeriod + ')'}">SMA(14)</span>,
-              <span th:text="${item.secondIndicatorType + '(' + item.secondPeriod + ')'}">EMA(20)</span>,
-              <span th:text="${item.thirdIndicatorType + '(' + item.thirdPeriod + ')'}">RSI(14)</span>
+              <!-- First Indicator -->
+              <span th:text="${item.firstIndicatorType}">SMA</span>
+              <span th:if="${item.firstPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, item.firstIndicatorType)}"
+                    th:text="${'(' + item.firstPeriod + ')'}"></span>
+              <span th:if="${item.firstIndicatorType == 'MACD'}">(12,26,9)</span>
+              <span th:if="${item.firstIndicatorType == 'STOCH'}">(5,3,3)</span>
+              <span th:if="${item.firstIndicatorType == 'SAR'}">(0.02,0.20)</span>,
+
+              <!-- Second Indicator -->
+              <span th:text="${item.secondIndicatorType}">EMA</span>
+              <span th:if="${item.secondPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, item.secondIndicatorType)}"
+                    th:text="${'(' + item.secondPeriod + ')'}"></span>
+              <span th:if="${item.secondIndicatorType == 'MACD'}">(12,26,9)</span>
+              <span th:if="${item.secondIndicatorType == 'STOCH'}">(5,3,3)</span>
+              <span th:if="${item.secondIndicatorType == 'SAR'}">(0.02,0.20)</span>,
+
+              <!-- Third Indicator -->
+              <span th:text="${item.thirdIndicatorType}">RSI</span>
+              <span th:if="${item.thirdPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, item.thirdIndicatorType)}"
+                    th:text="${'(' + item.thirdPeriod + ')'}"></span>
+              <span th:if="${item.thirdIndicatorType == 'MACD'}">(12,26,9)</span>
+              <span th:if="${item.thirdIndicatorType == 'STOCH'}">(5,3,3)</span>
+              <span th:if="${item.thirdIndicatorType == 'SAR'}">(0.02,0.20)</span>
             </td>
             <td>
               <span th:text="${#strings.abbreviate(item.aiAdvice, 50)}">BUY: Strong bullish signal with SMA crossing above...</span>

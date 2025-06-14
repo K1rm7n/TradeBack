@@ -552,8 +552,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (noPeriodIndicators.includes(selectedValue)) {
             periodElement.style.display = 'none';
+            // ВАЖНО: для индикаторов без периода устанавливаем валидное значение
+            periodElement.value = '14'; // Устанавливаем валидное значение в видимое поле
             if (hiddenInput) {
-                hiddenInput.value = '0';
+                hiddenInput.value = '14'; // И в скрытое поле тоже
             }
         } else {
             periodElement.style.display = 'block';

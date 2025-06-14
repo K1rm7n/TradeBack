@@ -36,15 +36,38 @@
             </tr>
             <tr>
               <th>1st Indicator</th>
-              <td th:text="${historyItem.firstIndicatorType + '(' + historyItem.firstPeriod + ')'}">SMA(14)</td>
+              <td>
+                <span th:text="${historyItem.firstIndicatorType}">SMA</span>
+                <!-- Показываем период только для индикаторов, которые его используют -->
+                <span th:if="${historyItem.firstPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, historyItem.firstIndicatorType)}"
+                      th:text="${'(' + historyItem.firstPeriod + ')'}"></span>
+                <!-- Для специальных индикаторов показываем их фиксированные параметры -->
+                <span th:if="${historyItem.firstIndicatorType == 'MACD'}">(12,26,9)</span>
+                <span th:if="${historyItem.firstIndicatorType == 'STOCH'}">(5,3,3)</span>
+                <span th:if="${historyItem.firstIndicatorType == 'SAR'}">(0.02,0.20)</span>
+              </td>
             </tr>
             <tr>
               <th>2nd Indicator</th>
-              <td th:text="${historyItem.secondIndicatorType + '(' + historyItem.secondPeriod + ')'}">EMA(20)</td>
+              <td>
+                <span th:text="${historyItem.secondIndicatorType}">EMA</span>
+                <span th:if="${historyItem.secondPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, historyItem.secondIndicatorType)}"
+                      th:text="${'(' + historyItem.secondPeriod + ')'}"></span>
+                <span th:if="${historyItem.secondIndicatorType == 'MACD'}">(12,26,9)</span>
+                <span th:if="${historyItem.secondIndicatorType == 'STOCH'}">(5,3,3)</span>
+                <span th:if="${historyItem.secondIndicatorType == 'SAR'}">(0.02,0.20)</span>
+              </td>
             </tr>
             <tr>
               <th>3rd Indicator</th>
-              <td th:text="${historyItem.thirdIndicatorType + '(' + historyItem.thirdPeriod + ')'}">RSI(14)</td>
+              <td>
+                <span th:text="${historyItem.thirdIndicatorType}">RSI</span>
+                <span th:if="${historyItem.thirdPeriod > 0 && !#lists.contains({'MACD', 'STOCH', 'SAR', 'VWAP', 'OBV'}, historyItem.thirdIndicatorType)}"
+                      th:text="${'(' + historyItem.thirdPeriod + ')'}"></span>
+                <span th:if="${historyItem.thirdIndicatorType == 'MACD'}">(12,26,9)</span>
+                <span th:if="${historyItem.thirdIndicatorType == 'STOCH'}">(5,3,3)</span>
+                <span th:if="${historyItem.thirdIndicatorType == 'SAR'}">(0.02,0.20)</span>
+              </td>
             </tr>
           </table>
         </div>

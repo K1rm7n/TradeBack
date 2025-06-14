@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,11 @@ public class SignalService {
     private final SignalRepository signalRepository;
     private final IndicatorService indicatorService;
     private final GroqChatService groqChatService;
+
+    // Список индикаторов, которые не используют период
+    private static final List<String> NO_PERIOD_INDICATORS = Arrays.asList(
+            "MACD", "STOCH", "SAR", "VWAP", "OBV"
+    );
 
     public Map<String, Object> generateSignals(IndicatorRequest indicatorRequest) {
         Map<String, Object> result = new HashMap<>();
@@ -46,14 +52,21 @@ public class SignalService {
                     indicatorRequest.getInterval());
             double thirdIndicatorValue = indicatorService.calculateIndicator(thirdIndicator);
 
-            double currentPrice = firstIndicatorValue;
+            double currentPrice = indicatorService.getCurrentPrice(indicatorRequest.getSymbol());
+            if (currentPrice == 0.0) {
+                // Если текущая цена недоступна, используем значение первого индикатора как приближение
+                currentPrice = firstIndicatorValue;
+            }
 
-            // Get AI advice
+            // Get AI advice с учетом периодов (0 для индикаторов без периода)
             String advice = groqChatService.getTradingAdvice(
                     indicatorRequest.getSymbol(), currentPrice,
-                    indicatorRequest.getFirstIndicatorType(), firstIndicatorValue, indicatorRequest.getFirstPeriod(),
-                    indicatorRequest.getSecondIndicatorType(), secondIndicatorValue, indicatorRequest.getSecondPeriod(),
-                    indicatorRequest.getThirdIndicatorType(), thirdIndicatorValue, indicatorRequest.getThirdPeriod()
+                    indicatorRequest.getFirstIndicatorType(), firstIndicatorValue,
+                    getEffectivePeriod(indicatorRequest.getFirstIndicatorType(), indicatorRequest.getFirstPeriod()),
+                    indicatorRequest.getSecondIndicatorType(), secondIndicatorValue,
+                    getEffectivePeriod(indicatorRequest.getSecondIndicatorType(), indicatorRequest.getSecondPeriod()),
+                    indicatorRequest.getThirdIndicatorType(), thirdIndicatorValue,
+                    getEffectivePeriod(indicatorRequest.getThirdIndicatorType(), indicatorRequest.getThirdPeriod())
             );
 
             // Create and save signal with enum support
@@ -68,6 +81,7 @@ public class SignalService {
             result.put("secondIndicatorValue", secondIndicatorValue);
             result.put("thirdIndicator", thirdIndicator);
             result.put("thirdIndicatorValue", thirdIndicatorValue);
+            result.put("currentPrice", currentPrice);
 
         } catch (Exception e) {
             log.error("Error generating signals: {}", e.getMessage());
@@ -106,10 +120,17 @@ public class SignalService {
         try {
             indicator.setType(Indicator.IndicatorType.valueOf(type.toUpperCase()));
         } catch (Exception e) {
-            indicator.setType(Indicator.IndicatorType.SMA); // fallback
+            log.warn("Unknown indicator type: {}, defaulting to SMA", type);
+            indicator.setType(Indicator.IndicatorType.SMA);
         }
 
-        indicator.setPeriod(period);
+        // Устанавливаем период с учетом типа индикатора
+        if (NO_PERIOD_INDICATORS.contains(type.toUpperCase())) {
+            indicator.setPeriod(0); // Для индикаторов без периода
+        } else {
+            indicator.setPeriod(period);
+        }
+
         indicator.setInterval(interval);
         indicator.setCalculatedAt(LocalDateTime.now());
         return indicator;
@@ -147,7 +168,22 @@ public class SignalService {
             return "SELL";
         } else if (upperAdvice.startsWith("HOLD:") || upperAdvice.contains("HOLD:")) {
             return "HOLD";
+        } else if (upperAdvice.contains("STRONG BUY")) {
+            return "STRONG_BUY";
+        } else if (upperAdvice.contains("STRONG SELL")) {
+            return "STRONG_SELL";
         }
         return "HOLD";
+    }
+
+    /**
+     * Возвращает эффективный период для индикатора
+     * Для индикаторов без периода возвращает 0
+     */
+    private int getEffectivePeriod(String indicatorType, int period) {
+        if (NO_PERIOD_INDICATORS.contains(indicatorType.toUpperCase())) {
+            return 0;
+        }
+        return period;
     }
 }
